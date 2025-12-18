@@ -108,11 +108,12 @@ async function connectWallet() {
  */
 async function loadCampaignData() {
     try {
-        const totalFunds = await contract.methods.totalFunds().call();
+        // Get actual contract balance (remaining funds)
+        const balance = await contract.methods.getBalance().call();
         const totalContributors = await contract.methods.totalContributors().call();
         const manager = await contract.methods.manager().call();
 
-        document.getElementById('totalFunds').textContent = web3.utils.fromWei(totalFunds, 'ether') + ' ETH';
+        document.getElementById('totalFunds').textContent = web3.utils.fromWei(balance, 'ether') + ' ETH';
         document.getElementById('totalContributors').textContent = totalContributors;
         document.getElementById('managerAddress').textContent = manager.substring(0, 6) + '...' + manager.substring(38);
 
