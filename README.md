@@ -55,7 +55,7 @@ CrowdFund/
 ### Step 2: Configure Frontend
 
 1. Open `config.js`
-2. Replace `YOUR_CONTRACT_ADDRESS_HERE` with your deployed contract address
+2. Add your deployed contract address
 3. The ABI is already included in the config file
 
 ### Step 3: Run the DApp
