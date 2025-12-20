@@ -49,7 +49,7 @@ CrowdFund/
 3. Copy the contract code from `contracts/CrowdFunding.sol`
 4. Compile the contract (Solidity ^0.8.0)
 5. Switch MetaMask to Sepolia Testnet
-6. Deploy using "Injected Provider - MetaMask"
+6. Deploy using "Sepolia Testnet - MetaMask"
 7. Copy the deployed contract address
 
 ### Step 2: Configure Frontend
