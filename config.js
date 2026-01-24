@@ -1,15 +1,12 @@
 // Configuration file for the CrowdFunding DApp
-// Update these values after deploying your contract
 
 const CONFIG = {
-    // Contract address - UPDATE THIS after deploying to Sepolia
-    contractAddress: "0xfBD4e4f7a101C02122A09C0433dcd0BCa2c2d94d",
+    contractAddress: "0x33F99B95AD523a9Eac608492e151f4998905673F",
 
     // Sepolia testnet configuration
-    sepoliaChainId: "0xaa36a7", // 11155111 in hex
+    sepoliaChainId: "0xaa36a7",
     sepoliaNetworkName: "Sepolia Testnet",
 
-    // Contract ABI - UPDATE THIS after compiling your contract
     contractABI: [
         {
             "inputs": [],

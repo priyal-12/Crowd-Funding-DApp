@@ -122,10 +122,12 @@ You should see:
 1. In "Create Spending Request" section
 2. Enter description (e.g., "Marketing expenses")
 3. Enter amount (e.g., 0.005)
-4. Enter recipient address (use another wallet address)
+4. Enter recipient address (use another wallet address - **NOT your own address**)
 5. Click "Create Request"
 6. Confirm transaction in MetaMask
 7. Verify request appears in "Spending Requests" section
+
+> **Security Note:** The contract prevents the manager from creating spending requests to their own address. If you try to use your own address as the recipient, the transaction will fail with the error "Manager cannot send funds to themselves".
 
 ### Test 3: Vote on Request
 

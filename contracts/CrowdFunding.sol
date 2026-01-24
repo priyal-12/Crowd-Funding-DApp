@@ -80,6 +80,7 @@ contract CrowdFunding {
         require(_amount > 0, "Amount must be greater than 0");
         require(_amount <= address(this).balance, "Insufficient funds");
         require(_recipient != address(0), "Invalid recipient address");
+        require(_recipient != manager, "Manager cannot send funds to themselves");
         
         SpendingRequest storage newRequest = requests[requestCount];
         newRequest.description = _description;
