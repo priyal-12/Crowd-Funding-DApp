@@ -212,16 +212,20 @@ async function loadMilestones() {
         const currentMilestoneIndex = await contract.methods.currentMilestoneIndex().call();
         const mList = document.getElementById('milestonesList');
         mList.innerHTML = '';
+        
+        let campaignGoalWei = web3.utils.toBN('0');
 
         for (let i = 0; i < count; i++) {
             const m = await contract.methods.getMilestone(i).call();
             const hasVoted = await contract.methods.hasVoted(i, currentAccount).call();
             
+            campaignGoalWei = campaignGoalWei.add(web3.utils.toBN(m.amount));
+            
             const reqDiv = document.createElement('div');
             reqDiv.className = 'request-item';
 
             let sClass = 'status-pending';
-            if (m.status == 1) sClass = 'status-pending'; // UnderReview
+            if (m.status == 1) sClass = 'status-review'; // UnderReview
             else if (m.status == 2) sClass = 'status-completed'; // Approved
             else if (m.status == 3) sClass = 'status-reject'; // Rejected
             else if (m.status == 4) sClass = 'status-completed'; // Released
@@ -237,11 +241,11 @@ async function loadMilestones() {
                 <div class="request-details">
                     <p><strong>Description:</strong> ${m.description}</p>
                     <p><strong>Amount Allocated:</strong> ${web3.utils.fromWei(m.amount, 'ether')} ETH</p>
-                    <p><strong>Beneficiary:</strong> ${m.beneficiary}</p>
-                    ${m.proof ? `<p><strong>Proof Submitted:</strong> <a href="${m.proof}" target="_blank" style="color:var(--primary-color);">View Proof</a></p>` : ''}
-                    <div style="background:#2a2a2a; padding:10px; border-radius:5px; margin-top:10px;">
+                    <p><strong>Beneficiary:</strong> <span style="font-family: monospace; font-size: 0.9em; background: #F3F4F6; padding: 2px 6px; border-radius: 4px;">${m.beneficiary}</span></p>
+                    ${m.proof ? `<p style="margin-top: 10px;"><strong>Proof Submitted:</strong> <a href="${m.proof}" target="_blank" class="proof-link">View Proof</a></p>` : ''}
+                    <div class="voting-results">
                         <p><strong>Voting Power (Total ETH):</strong></p>
-                        <p>👍 Promotes: ${web3.utils.fromWei(m.yesVotes, 'ether')} ETH | 👎 Rejects: ${web3.utils.fromWei(m.noVotes, 'ether')} ETH</p>
+                        <p>👍 Yes votes: ${web3.utils.fromWei(m.yesVotes, 'ether')} ETH &nbsp;|&nbsp; 👎 No votes: ${web3.utils.fromWei(m.noVotes, 'ether')} ETH</p>
                     </div>
                 </div>
                 <div class="request-actions" id="m-actions-${i}"></div>
@@ -253,7 +257,7 @@ async function loadMilestones() {
             if (isCurrent) {
                 if (isManager && (m.status == 0 || m.status == 3)) { 
                     const prfBtn = document.createElement('button');
-                    prfBtn.className = 'btn-approve';
+                    prfBtn.className = 'btn-primary';
                     prfBtn.textContent = 'Submit Proof';
                     prfBtn.onclick = () => {
                         currentProofId = i;
@@ -267,18 +271,18 @@ async function loadMilestones() {
                     if (!hasVoted) {
                         const vYesBtn = document.createElement('button');
                         vYesBtn.className = 'btn-approve';
-                        vYesBtn.textContent = 'Vote: Approve';
+                        vYesBtn.textContent = 'Approve';
                         vYesBtn.onclick = () => voteMilestone(i, true);
                         
                         const vNoBtn = document.createElement('button');
                         vNoBtn.className = 'btn-reject';
-                        vNoBtn.textContent = 'Vote: Reject';
+                        vNoBtn.textContent = 'Reject';
                         vNoBtn.onclick = () => voteMilestone(i, false);
                         
                         actionsDiv.appendChild(vYesBtn);
                         actionsDiv.appendChild(vNoBtn);
                     } else {
-                        actionsDiv.innerHTML += '<span style="opacity: 0.7;">You have voted.</span>';
+                        actionsDiv.innerHTML += '<span style="opacity: 0.7; font-weight: 500;">You have voted on this milestone.</span>';
                     }
                     
                     if (isManager) {
@@ -290,9 +294,27 @@ async function loadMilestones() {
                     }
                 }
             } else if (m.status == 4) {
-                actionsDiv.innerHTML += '<span style="color: green;">Funds Released Successfully</span>';
+                actionsDiv.innerHTML += '<span style="color: var(--success-color); font-weight: 600;">Funds Released Successfully</span>';
             }
         }
+        
+        // Update Progress Bar & Goal globally
+        const goalEth = web3.utils.fromWei(campaignGoalWei, 'ether');
+        const goalEl = document.getElementById('campaignGoal');
+        if (goalEl) goalEl.textContent = goalEth + ' ETH';
+        
+        const totalFunds = await contract.methods.totalFunds().call();
+        let percent = 0;
+        if (!campaignGoalWei.isZero()) {
+            percent = (parseFloat(web3.utils.fromWei(totalFunds, 'ether')) / parseFloat(goalEth)) * 100;
+            if (percent > 100) percent = 100;
+        }
+        const pctText = percent.toFixed(1) + '%';
+        const percentEl = document.getElementById('progressPercent');
+        const fillEl = document.getElementById('progressFill');
+        if (percentEl) percentEl.textContent = pctText;
+        if (fillEl) fillEl.style.width = pctText;
+
     } catch (error) {
         console.error('Error loading milestones:', error);
     }

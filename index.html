@@ -27,18 +27,33 @@
             <h2>Campaign Statistics</h2>
             <div class="stats-grid">
                 <div class="stat-item">
-                    <p class="stat-label">Available Funds</p>
+                    <p class="stat-label">Total Raised</p>
                     <p class="stat-value" id="totalFunds">0 ETH</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-label">Campaign Goal</p>
+                    <p class="stat-value" id="campaignGoal">0 ETH</p>
                 </div>
                 <div class="stat-item">
                     <p class="stat-label">Contributors</p>
                     <p class="stat-value" id="totalContributors">0</p>
                 </div>
-                <div class="stat-item">
-                    <p class="stat-label">Manager</p>
-                    <p class="stat-value" id="managerAddress">-</p>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span>Funding Progress</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
                 </div>
             </div>
+            
+            <p class="helper-text" style="margin-top: 16px;">
+                <strong>Note:</strong> Funds are released directly to beneficiaries after donor approval.<br>
+                Manager Address: <span id="managerAddress">-</span>
+            </p>
         </div>
 
         <!-- Contribute Section -->
