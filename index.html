@@ -51,38 +51,88 @@
             <button id="contributeBtn" class="btn-primary">Contribute</button>
         </div>
 
-        <!-- Create Request Section (Manager Only) -->
-        <div id="createRequestSection" class="card" style="display: none;">
-            <h2>Create Spending Request (Manager Only)</h2>
-            <div class="form-group">
-                <label for="requestDescription">Description</label>
-                <input type="text" id="requestDescription" placeholder="e.g., Marketing expenses">
+        <!-- Create Campaign Section (Manager Only) -->
+        <div id="createCampaignSection" class="card" style="display: none;">
+            <h2>Define Campaign Milestones (Manager Only)</h2>
+            <p style="margin-bottom: 15px; font-size: 0.9em; color: #666;">Define up to 5 milestones. Funds will be released to beneficiaries only after donor approval.</p>
+            
+            <div id="milestoneInputsContainer">
+                <div class="milestone-input-group card" style="background-color: var(--secondary-color);" id="milestoneInput-0">
+                    <h3 style="margin-top: 0;">Milestone 1</h3>
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" class="m-title" placeholder="e.g., Identify Students">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" class="m-desc" placeholder="Details about this phase">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (ETH)</label>
+                        <input type="number" class="m-amount" placeholder="0.1" step="0.001" min="0.001">
+                    </div>
+                    <div class="form-group">
+                        <label>Beneficiary Address</label>
+                        <input type="text" class="m-beneficiary" placeholder="0x...">
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="requestAmount">Amount (ETH)</label>
-                <input type="number" id="requestAmount" placeholder="0.1" step="0.001" min="0.001">
-            </div>
-            <div class="form-group">
-                <label for="requestRecipient">Recipient Address</label>
-                <input type="text" id="requestRecipient" placeholder="0x...">
-            </div>
-            <button id="createRequestBtn" class="btn-primary">Create Request</button>
+            
+            <button id="addMilestoneBtn" class="btn-secondary" style="margin-bottom: 20px; background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color);">+ Add Another Milestone</button>
+            <div style="margin-bottom: 15px;"></div>
+            <button id="createCampaignBtn" class="btn-primary">Create Campaign & Lock Setup</button>
         </div>
 
-        <!-- Spending Requests -->
-        <div id="requestsSection" class="card" style="display: none;">
-            <h2>Spending Requests</h2>
-            <div id="requestsList"></div>
+        <!-- Submit Proof Modal (Manager Only) -->
+        <div id="submitProofSection" class="card" style="display: none; border-left: 4px solid var(--primary-color);">
+            <h2>Submit Proof for Current Milestone</h2>
+            <p>Milestone ID: <span id="proofMilestoneIdText"></span></p>
+            <div class="form-group">
+                <label>Proof Document/Image Link (IPFS hash or URL)</label>
+                <input type="text" id="proofInput" placeholder="ipfs://... or https://...">
+            </div>
+            <button id="submitProofBtn" class="btn-primary">Submit for Review</button>
+            <button id="cancelProofBtn" class="btn-secondary" style="margin-left: 10px; background: #666;">Cancel</button>
+        </div>
+
+        <!-- Milestones List -->
+        <div id="milestonesSection" class="card" style="display: none;">
+            <h2>Campaign Milestones Journey</h2>
+            <div id="milestonesList"></div>
         </div>
 
         <!-- Status Messages -->
         <div id="statusMessage" class="status-message" style="display: none;"></div>
     </div>
 
+    <!-- Chatbot Widget -->
+    <button id="chatbot-toggle" class="chatbot-toggle">💬</button>
+    <div id="chatbot-panel" class="chatbot-panel" style="display: none;">
+        <div class="chatbot-header">
+            <h3>🤖 Assistant</h3>
+            <button id="chatbot-close" class="chatbot-close">&times;</button>
+        </div>
+        <div class="chatbot-messages" id="chatbot-messages">
+            <div class="message ai-message">
+                <p>Hi! I can answer questions about this campaign. Try asking:</p>
+            </div>
+            <div class="chatbot-chips">
+                <button class="chatbot-chip">How much has been raised?</button>
+                <button class="chatbot-chip">What is request #0 about?</button>
+                <button class="chatbot-chip">How do I vote?</button>
+            </div>
+        </div>
+        <div class="chatbot-input-area">
+            <input type="text" id="chatbot-input" placeholder="Ask a question..." />
+            <button id="chatbot-send">Send</button>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
     <script src="config.js"></script>
     <script src="app.js"></script>
+    <script src="chat.js"></script>
 </body>
 
 </html>

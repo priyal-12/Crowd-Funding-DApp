@@ -1,0 +1,9 @@
+{
+  "name": "crowdfund",
+  "version": "1.0.0",
+  "description": "CrowdFunding DApp with AI Assistant",
+  "main": "app.js",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  }
+}

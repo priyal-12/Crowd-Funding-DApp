@@ -3,182 +3,198 @@ pragma solidity ^0.8.0;
 
 /**
  * @title CrowdFunding
- * @dev Decentralized crowd-funding contract with transparent escrow and voting system
+ * @dev Decentralized crowd-funding contract with Milestone-Based Fund Release
  */
 contract CrowdFunding {
-    
-    // Manager address (contract deployer)
     address public manager;
-    
-    // Mapping to track contributions
     mapping(address => uint) public contributors;
-    
-    // Total number of contributors
     uint public totalContributors;
-    
-    // Total funds raised
     uint public totalFunds;
-    
-    // Spending request structure
-    struct SpendingRequest {
+
+    enum MilestoneStatus { Pending, UnderReview, Approved, Rejected, Released }
+
+    struct Milestone {
+        string title;
         string description;
         uint amount;
-        address payable recipient;
-        bool completed;
-        uint approvalCount;
-        uint rejectCount;
-        mapping(address => bool) hasVoted;
+        address payable beneficiary;
+        MilestoneStatus status;
+        string proof;
+        uint yesVotes;
+        uint noVotes;
+        bool released;
     }
+
+    Milestone[] public milestones;
+    bool public campaignCreated;
+    uint public currentMilestoneIndex; // Enforces "One Milestone at a Time"
     
-    // Array of spending requests
-    mapping(uint => SpendingRequest) public requests;
-    uint public requestCount;
-    
-    // Modifiers
+    // milestoneIndex => voter => bool
+    mapping(uint => mapping(address => bool)) public hasVoted;
+
     modifier onlyManager() {
         require(msg.sender == manager, "Only manager can call this");
         _;
     }
-    
+
     modifier onlyContributor() {
         require(contributors[msg.sender] > 0, "Only contributors can vote");
         _;
     }
-    
-    // Constructor - sets deployer as manager
+
     constructor() {
         manager = msg.sender;
     }
-    
+
     /**
      * @dev Contribute ETH to the campaign
      */
     function contribute() public payable {
         require(msg.value > 0, "Contribution must be greater than 0");
-        
-        // If first time contributor, increment count
         if (contributors[msg.sender] == 0) {
             totalContributors++;
         }
-        
-        // Track contribution
         contributors[msg.sender] += msg.value;
         totalFunds += msg.value;
     }
-    
+
     /**
-     * @dev Create a spending request (manager only)
-     * @param _description Description of the spending request
-     * @param _amount Amount requested in wei
-     * @param _recipient Address to receive funds if approved
+     * @dev Create campaign with multiple milestones (max 5)
      */
-    function createRequest(
-        string memory _description,
-        uint _amount,
-        address payable _recipient
+    function createCampaign(
+        string[] memory _titles,
+        string[] memory _descriptions,
+        uint[] memory _amounts,
+        address payable[] memory _beneficiaries
     ) public onlyManager {
-        require(_amount > 0, "Amount must be greater than 0");
-        require(_amount <= address(this).balance, "Insufficient funds");
-        require(_recipient != address(0), "Invalid recipient address");
-        require(_recipient != manager, "Manager cannot send funds to themselves");
+        require(!campaignCreated, "Campaign already created");
+        require(_titles.length > 0 && _titles.length <= 5, "Milestones count must be between 1 and 5");
+        require(
+            _titles.length == _descriptions.length &&
+            _titles.length == _amounts.length &&
+            _titles.length == _beneficiaries.length,
+            "Array lengths must match"
+        );
+
+        for (uint i = 0; i < _titles.length; i++) {
+            require(_beneficiaries[i] != address(0), "Invalid beneficiary address");
+            require(_beneficiaries[i] != manager, "Creator cannot be beneficiary directly"); // Beneficiary Lock
+            require(_amounts[i] > 0, "Milestone amount must be > 0");
+            
+            milestones.push(Milestone({
+                title: _titles[i],
+                description: _descriptions[i],
+                amount: _amounts[i],
+                beneficiary: _beneficiaries[i],
+                status: MilestoneStatus.Pending,
+                proof: "",
+                yesVotes: 0,
+                noVotes: 0,
+                released: false
+            }));
+        }
+        campaignCreated = true;
+    }
+
+    /**
+     * @dev Manager submits proof for the current pending milestone
+     */
+    function submitProof(uint _milestoneId, string memory _proof) public onlyManager {
+        require(campaignCreated, "Campaign not created");
+        require(_milestoneId < milestones.length, "Invalid milestone ID");
+        require(_milestoneId == currentMilestoneIndex, "Must complete milestones in order"); // One Milestone at a Time
         
-        SpendingRequest storage newRequest = requests[requestCount];
-        newRequest.description = _description;
-        newRequest.amount = _amount;
-        newRequest.recipient = _recipient;
-        newRequest.completed = false;
-        newRequest.approvalCount = 0;
-        newRequest.rejectCount = 0;
+        Milestone storage milestone = milestones[_milestoneId];
+        require(milestone.status == MilestoneStatus.Pending || milestone.status == MilestoneStatus.Rejected, "Invalid milestone state for proof submission");
         
-        requestCount++;
+        milestone.proof = _proof;
+        milestone.status = MilestoneStatus.UnderReview;
+        
+        // Reset votes if resubmitted
+        milestone.yesVotes = 0;
+        milestone.noVotes = 0;
+    }
+
+    /**
+     * @dev Contributors vote on the current milestone under review
+     */
+    function voteOnMilestone(uint _milestoneId, bool _support) public onlyContributor {
+        require(_milestoneId < milestones.length, "Invalid milestone ID");
+        require(_milestoneId == currentMilestoneIndex, "Can only vote on current milestone"); // Prevent early voting on future milestones
+        
+        Milestone storage milestone = milestones[_milestoneId];
+        require(milestone.status == MilestoneStatus.UnderReview, "Milestone is not under review");
+        require(!hasVoted[_milestoneId][msg.sender], "You have already voted on this milestone"); // Prevent double voting
+        
+        hasVoted[_milestoneId][msg.sender] = true;
+        
+        // Voting power proportional to contribution
+        uint votePower = contributors[msg.sender];
+        if (_support) {
+            milestone.yesVotes += votePower;
+        } else {
+            milestone.noVotes += votePower;
+        }
+    }
+
+    /**
+     * @dev Finalize voting and transfer funds for the current milestone
+     */
+    function releaseFunds(uint _milestoneId) public onlyManager {
+        require(_milestoneId < milestones.length, "Invalid milestone ID");
+        require(_milestoneId == currentMilestoneIndex, "Can only release current milestone"); // Prevent early release logic part 1
+        
+        Milestone storage milestone = milestones[_milestoneId];
+        require(milestone.status == MilestoneStatus.UnderReview, "Milestone must be under review"); // Prevent early release logic part 2
+        require(!milestone.released, "Funds already released");
+        
+        if (milestone.yesVotes > milestone.noVotes) {
+            milestone.status = MilestoneStatus.Released;
+            milestone.released = true;
+            
+            // Move to next milestone
+            currentMilestoneIndex++;
+            
+            // Re-entrancy guard via state modification before transfer
+            require(address(this).balance >= milestone.amount, "Insufficient contract balance");
+            milestone.beneficiary.transfer(milestone.amount);
+            
+        } else {
+            milestone.status = MilestoneStatus.Rejected;
+            // Creator must submitProof again
+        }
     }
     
-    /**
-     * @dev Vote to approve a spending request
-     * @param _requestId ID of the request to approve
-     */
-    function approveRequest(uint _requestId) public onlyContributor {
-        require(_requestId < requestCount, "Invalid request ID");
-        
-        SpendingRequest storage request = requests[_requestId];
-        require(!request.completed, "Request already completed");
-        require(!request.hasVoted[msg.sender], "You have already voted");
-        
-        request.hasVoted[msg.sender] = true;
-        request.approvalCount++;
+    function getMilestonesCount() public view returns (uint) {
+        return milestones.length;
     }
     
-    /**
-     * @dev Vote to reject a spending request
-     * @param _requestId ID of the request to reject
-     */
-    function rejectRequest(uint _requestId) public onlyContributor {
-        require(_requestId < requestCount, "Invalid request ID");
-        
-        SpendingRequest storage request = requests[_requestId];
-        require(!request.completed, "Request already completed");
-        require(!request.hasVoted[msg.sender], "You have already voted");
-        
-        request.hasVoted[msg.sender] = true;
-        request.rejectCount++;
-    }
-    
-    /**
-     * @dev Finalize a request and release funds if approved by majority
-     * @param _requestId ID of the request to finalize
-     */
-    function finalizeRequest(uint _requestId) public onlyManager {
-        require(_requestId < requestCount, "Invalid request ID");
-        
-        SpendingRequest storage request = requests[_requestId];
-        require(!request.completed, "Request already completed");
-        require(request.approvalCount > (totalContributors / 2), "Majority approval required");
-        
-        // Mark as completed first (re-entrancy protection)
-        request.completed = true;
-        
-        // Transfer funds to recipient
-        request.recipient.transfer(request.amount);
-    }
-    
-    /**
-     * @dev Get request details
-     * @param _requestId ID of the request
-     */
-    function getRequest(uint _requestId) public view returns (
+    function getMilestone(uint _id) public view returns (
+        string memory title,
         string memory description,
         uint amount,
-        address recipient,
-        bool completed,
-        uint approvalCount,
-        uint rejectCount
+        address beneficiary,
+        MilestoneStatus status,
+        string memory proof,
+        uint yesVotes,
+        uint noVotes,
+        bool released
     ) {
-        require(_requestId < requestCount, "Invalid request ID");
-        
-        SpendingRequest storage request = requests[_requestId];
+        require(_id < milestones.length, "Invalid milestone ID");
+        Milestone storage m = milestones[_id];
         return (
-            request.description,
-            request.amount,
-            request.recipient,
-            request.completed,
-            request.approvalCount,
-            request.rejectCount
+            m.title,
+            m.description,
+            m.amount,
+            m.beneficiary,
+            m.status,
+            m.proof,
+            m.yesVotes,
+            m.noVotes,
+            m.released
         );
     }
     
-    /**
-     * @dev Check if an address has voted on a request
-     * @param _requestId ID of the request
-     * @param _voter Address of the voter
-     */
-    function hasVoted(uint _requestId, address _voter) public view returns (bool) {
-        require(_requestId < requestCount, "Invalid request ID");
-        return requests[_requestId].hasVoted[_voter];
-    }
-    
-    /**
-     * @dev Get contract balance
-     */
     function getBalance() public view returns (uint) {
         return address(this).balance;
     }

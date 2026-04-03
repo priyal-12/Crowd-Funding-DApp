@@ -3,6 +3,8 @@ let web3;
 let contract;
 let currentAccount;
 let isManager = false;
+let milestoneCountInput = 1;
+let currentProofId = null;
 
 // Initialize on page load
 window.addEventListener('load', async () => {
@@ -16,7 +18,12 @@ window.addEventListener('load', async () => {
     // Setup event listeners
     document.getElementById('connectBtn').addEventListener('click', connectWallet);
     document.getElementById('contributeBtn').addEventListener('click', contribute);
-    document.getElementById('createRequestBtn').addEventListener('click', createRequest);
+    document.getElementById('addMilestoneBtn').addEventListener('click', addMilestoneField);
+    document.getElementById('createCampaignBtn').addEventListener('click', createCampaign);
+    document.getElementById('submitProofBtn').addEventListener('click', submitProof);
+    document.getElementById('cancelProofBtn').addEventListener('click', () => {
+        document.getElementById('submitProofSection').style.display = 'none';
+    });
 });
 
 /**
@@ -24,41 +31,17 @@ window.addEventListener('load', async () => {
  */
 async function connectWallet() {
     try {
-        // Request account access
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         currentAccount = accounts[0];
 
-        // Initialize Web3
         web3 = new Web3(window.ethereum);
 
-        // Check if connected to Sepolia
         const chainId = await web3.eth.getChainId();
-        if (chainId !== 11155111) { // Sepolia chain ID
-            showStatus('Wrong network detected. Requesting switch to Sepolia...', 'info');
-
-            try {
-                // Request to switch to Sepolia
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0xaa36a7' }], // Sepolia chain ID in hex
-                });
-
-                // Retry connection after switch
-                showStatus('Network switched! Reconnecting...', 'success');
-                setTimeout(() => connectWallet(), 1000);
-                return;
-            } catch (switchError) {
-                // This error code indicates that the chain has not been added to MetaMask
-                if (switchError.code === 4902) {
-                    showStatus('Please add Sepolia network to MetaMask manually', 'error');
-                } else {
-                    showStatus('Please switch to Sepolia Testnet in MetaMask manually', 'error');
-                }
-                return;
-            }
+        if (chainId !== 11155111) { // Sepolia
+            showStatus('Wrong network detected. Please switch to Sepolia.', 'error');
+            return;
         }
 
-        // Initialize contract
         contract = new web3.eth.Contract(CONFIG.contractABI, CONFIG.contractAddress);
 
         // Update UI
@@ -67,38 +50,33 @@ async function connectWallet() {
         document.getElementById('walletInfo').style.display = 'block';
         document.getElementById('campaignStats').style.display = 'block';
         document.getElementById('contributeSection').style.display = 'block';
-        document.getElementById('requestsSection').style.display = 'block';
 
-        // Load campaign data
         await loadCampaignData();
-        await loadRequests();
 
-        // Check if current user is manager
         const manager = await contract.methods.manager().call();
         isManager = manager.toLowerCase() === currentAccount.toLowerCase();
+        
+        const campaignCreated = await contract.methods.campaignCreated().call();
 
-        if (isManager) {
-            document.getElementById('createRequestSection').style.display = 'block';
+        if (isManager && !campaignCreated) {
+            document.getElementById('createCampaignSection').style.display = 'block';
+        }
+        
+        if (campaignCreated) {
+            document.getElementById('milestonesSection').style.display = 'block';
+            await loadMilestones();
         }
 
         showStatus('Connected successfully!', 'success');
 
-        // Listen for account changes
         window.ethereum.on('accountsChanged', (accounts) => {
-            if (accounts.length === 0) {
-                showStatus('Please connect to MetaMask', 'error');
-            } else {
-                location.reload();
-            }
+            if (accounts.length === 0) location.reload();
+            else location.reload();
         });
-
-        // Listen for chain changes
-        window.ethereum.on('chainChanged', () => {
-            location.reload();
-        });
+        window.ethereum.on('chainChanged', () => location.reload());
 
     } catch (error) {
-        console.error('Error connecting wallet:', error);
+        console.error(error);
         showStatus('Failed to connect wallet: ' + error.message, 'error');
     }
 }
@@ -108,7 +86,6 @@ async function connectWallet() {
  */
 async function loadCampaignData() {
     try {
-        // Get actual contract balance (remaining funds)
         const balance = await contract.methods.getBalance().call();
         const totalContributors = await contract.methods.totalContributors().call();
         const manager = await contract.methods.manager().call();
@@ -116,9 +93,8 @@ async function loadCampaignData() {
         document.getElementById('totalFunds').textContent = web3.utils.fromWei(balance, 'ether') + ' ETH';
         document.getElementById('totalContributors').textContent = totalContributors;
         document.getElementById('managerAddress').textContent = manager.substring(0, 6) + '...' + manager.substring(38);
-
     } catch (error) {
-        console.error('Error loading campaign data:', error);
+        console.error(error);
     }
 }
 
@@ -128,225 +104,244 @@ async function loadCampaignData() {
 async function contribute() {
     try {
         const amount = document.getElementById('contributeAmount').value;
-
-        if (!amount || amount <= 0) {
-            showStatus('Please enter a valid amount', 'error');
-            return;
-        }
+        if (!amount || amount <= 0) return showStatus('Please enter a valid amount', 'error');
 
         const amountWei = web3.utils.toWei(amount, 'ether');
-
         showStatus('Processing transaction...', 'info');
 
-        await contract.methods.contribute().send({
-            from: currentAccount,
-            value: amountWei
-        });
+        await contract.methods.contribute().send({ from: currentAccount, value: amountWei });
 
         showStatus('Contribution successful!', 'success');
-
-        // Clear input and reload data
         document.getElementById('contributeAmount').value = '';
         await loadCampaignData();
-
     } catch (error) {
-        console.error('Error contributing:', error);
         showStatus('Contribution failed: ' + error.message, 'error');
     }
 }
 
-/**
- * Create a spending request (manager only)
- */
-async function createRequest() {
+function addMilestoneField() {
+    if (milestoneCountInput >= 5) {
+        showStatus('Maximum 5 milestones allowed.', 'error');
+        return;
+    }
+    
+    const container = document.getElementById('milestoneInputsContainer');
+    const newGroupId = `milestoneInput-${milestoneCountInput}`;
+    
+    const div = document.createElement('div');
+    div.className = 'milestone-input-group card';
+    div.style.backgroundColor = 'var(--secondary-color)';
+    div.id = newGroupId;
+    div.innerHTML = `
+        <h3 style="margin-top: 0;">Milestone ${milestoneCountInput + 1}</h3>
+        <div class="form-group">
+            <label>Title</label>
+            <input type="text" class="m-title" placeholder="e.g., Output Delivery">
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <input type="text" class="m-desc" placeholder="Details">
+        </div>
+        <div class="form-group">
+            <label>Amount (ETH)</label>
+            <input type="number" class="m-amount" placeholder="0.1" step="0.001" min="0.001">
+        </div>
+        <div class="form-group">
+            <label>Beneficiary Address</label>
+            <input type="text" class="m-beneficiary" placeholder="0x...">
+        </div>
+    `;
+    container.appendChild(div);
+    milestoneCountInput++;
+}
+
+async function createCampaign() {
     try {
-        const description = document.getElementById('requestDescription').value;
-        const amount = document.getElementById('requestAmount').value;
-        const recipient = document.getElementById('requestRecipient').value;
-
-        if (!description || !amount || !recipient) {
-            showStatus('Please fill all fields', 'error');
+        const titles = [];
+        const descriptions = [];
+        const amounts = [];
+        const beneficiaries = [];
+        
+        let valid = true;
+        
+        for (let i = 0; i < milestoneCountInput; i++) {
+            const group = document.getElementById(`milestoneInput-${i}`);
+            const title = group.querySelector('.m-title').value;
+            const desc = group.querySelector('.m-desc').value;
+            const amount = group.querySelector('.m-amount').value;
+            const bAddress = group.querySelector('.m-beneficiary').value;
+            
+            if (!title || !desc || !amount || !bAddress) {
+                valid = false;
+                break;
+            }
+            
+            titles.push(title);
+            descriptions.push(desc);
+            amounts.push(web3.utils.toWei(amount, 'ether'));
+            beneficiaries.push(bAddress);
+        }
+        
+        if (!valid) {
+            showStatus('Please fill all fields for all milestones.', 'error');
             return;
         }
 
-        if (amount <= 0) {
-            showStatus('Amount must be greater than 0', 'error');
-            return;
-        }
+        showStatus('Creating Campaign...', 'info');
 
-        const amountWei = web3.utils.toWei(amount, 'ether');
-
-        showStatus('Creating request...', 'info');
-
-        await contract.methods.createRequest(description, amountWei, recipient).send({
+        await contract.methods.createCampaign(titles, descriptions, amounts, beneficiaries).send({
             from: currentAccount
         });
 
-        showStatus('Request created successfully!', 'success');
-
-        // Clear inputs and reload requests
-        document.getElementById('requestDescription').value = '';
-        document.getElementById('requestAmount').value = '';
-        document.getElementById('requestRecipient').value = '';
-        await loadRequests();
-
+        showStatus('Campaign created successfully!', 'success');
+        document.getElementById('createCampaignSection').style.display = 'none';
+        
+        // Reload page to show milestones
+        location.reload();
+        
     } catch (error) {
-        console.error('Error creating request:', error);
-        showStatus('Failed to create request: ' + error.message, 'error');
+        showStatus('Failed to create campaign: ' + error.message, 'error');
     }
 }
 
-/**
- * Load all spending requests
- */
-async function loadRequests() {
+const statusTextMap = ["Pending", "Under Review", "Approved", "Rejected", "Released"];
+
+async function loadMilestones() {
     try {
-        const requestCount = await contract.methods.requestCount().call();
-        const requestsList = document.getElementById('requestsList');
-        requestsList.innerHTML = '';
+        const count = await contract.methods.getMilestonesCount().call();
+        const currentMilestoneIndex = await contract.methods.currentMilestoneIndex().call();
+        const mList = document.getElementById('milestonesList');
+        mList.innerHTML = '';
 
-        if (requestCount == 0) {
-            requestsList.innerHTML = '<p style="text-align: center; opacity: 0.7;">No spending requests yet</p>';
-            return;
-        }
-
-        for (let i = 0; i < requestCount; i++) {
-            const request = await contract.methods.getRequest(i).call();
+        for (let i = 0; i < count; i++) {
+            const m = await contract.methods.getMilestone(i).call();
             const hasVoted = await contract.methods.hasVoted(i, currentAccount).call();
+            
+            const reqDiv = document.createElement('div');
+            reqDiv.className = 'request-item';
 
-            const requestDiv = document.createElement('div');
-            requestDiv.className = 'request-item';
+            let sClass = 'status-pending';
+            if (m.status == 1) sClass = 'status-pending'; // UnderReview
+            else if (m.status == 2) sClass = 'status-completed'; // Approved
+            else if (m.status == 3) sClass = 'status-reject'; // Rejected
+            else if (m.status == 4) sClass = 'status-completed'; // Released
+            
+            const isCurrent = i == currentMilestoneIndex;
+            let currentBadge = isCurrent ? '<span style="color:var(--primary-color); font-weight:bold; margin-left:10px;">[Active]</span>' : '';
 
-            const statusClass = request.completed ? 'status-completed' : 'status-pending';
-            const statusText = request.completed ? 'Completed' : 'Pending';
-
-            requestDiv.innerHTML = `
+            reqDiv.innerHTML = `
                 <div class="request-header">
-                    <div class="request-title">Request #${i}</div>
-                    <span class="status-badge ${statusClass}">${statusText}</span>
+                    <div class="request-title">${m.title} ${currentBadge}</div>
+                    <span class="status-badge ${sClass}">${statusTextMap[m.status]}</span>
                 </div>
                 <div class="request-details">
-                    <p><strong>Description:</strong> ${request.description}</p>
-                    <p><strong>Amount:</strong> ${web3.utils.fromWei(request.amount, 'ether')} ETH</p>
-                    <p><strong>Recipient:</strong> ${request.recipient}</p>
-                    <p><strong>Approvals:</strong> ${request.approvalCount} | <strong>Rejections:</strong> ${request.rejectCount}</p>
+                    <p><strong>Description:</strong> ${m.description}</p>
+                    <p><strong>Amount Allocated:</strong> ${web3.utils.fromWei(m.amount, 'ether')} ETH</p>
+                    <p><strong>Beneficiary:</strong> ${m.beneficiary}</p>
+                    ${m.proof ? `<p><strong>Proof Submitted:</strong> <a href="${m.proof}" target="_blank" style="color:var(--primary-color);">View Proof</a></p>` : ''}
+                    <div style="background:#2a2a2a; padding:10px; border-radius:5px; margin-top:10px;">
+                        <p><strong>Voting Power (Total ETH):</strong></p>
+                        <p>👍 Promotes: ${web3.utils.fromWei(m.yesVotes, 'ether')} ETH | 👎 Rejects: ${web3.utils.fromWei(m.noVotes, 'ether')} ETH</p>
+                    </div>
                 </div>
-                <div class="request-actions" id="actions-${i}">
-                </div>
+                <div class="request-actions" id="m-actions-${i}"></div>
             `;
+            
+            mList.appendChild(reqDiv);
+            const actionsDiv = document.getElementById(`m-actions-${i}`);
 
-            requestsList.appendChild(requestDiv);
+            if (isCurrent) {
+                if (isManager && (m.status == 0 || m.status == 3)) { 
+                    const prfBtn = document.createElement('button');
+                    prfBtn.className = 'btn-approve';
+                    prfBtn.textContent = 'Submit Proof';
+                    prfBtn.onclick = () => {
+                        currentProofId = i;
+                        document.getElementById('proofMilestoneIdText').textContent = i + ' - ' + m.title;
+                        document.getElementById('submitProofSection').style.display = 'block';
+                    };
+                    actionsDiv.appendChild(prfBtn);
+                }
 
-            const actionsDiv = document.getElementById(`actions-${i}`);
-
-            // Show voting buttons if not completed and not voted
-            if (!request.completed && !hasVoted) {
-                const approveBtn = document.createElement('button');
-                approveBtn.className = 'btn-approve';
-                approveBtn.textContent = 'Approve';
-                approveBtn.onclick = () => approveRequest(i);
-                actionsDiv.appendChild(approveBtn);
-
-                const rejectBtn = document.createElement('button');
-                rejectBtn.className = 'btn-reject';
-                rejectBtn.textContent = 'Reject';
-                rejectBtn.onclick = () => rejectRequest(i);
-                actionsDiv.appendChild(rejectBtn);
-            }
-
-            // Show finalize button for manager if not completed
-            if (!request.completed && isManager) {
-                const finalizeBtn = document.createElement('button');
-                finalizeBtn.className = 'btn-finalize';
-                finalizeBtn.textContent = 'Finalize';
-                finalizeBtn.onclick = () => finalizeRequest(i);
-                actionsDiv.appendChild(finalizeBtn);
-            }
-
-            if (hasVoted && !request.completed) {
-                const votedText = document.createElement('span');
-                votedText.textContent = 'You have voted';
-                votedText.style.opacity = '0.7';
-                actionsDiv.appendChild(votedText);
+                if (m.status == 1) { 
+                    if (!hasVoted) {
+                        const vYesBtn = document.createElement('button');
+                        vYesBtn.className = 'btn-approve';
+                        vYesBtn.textContent = 'Vote: Approve';
+                        vYesBtn.onclick = () => voteMilestone(i, true);
+                        
+                        const vNoBtn = document.createElement('button');
+                        vNoBtn.className = 'btn-reject';
+                        vNoBtn.textContent = 'Vote: Reject';
+                        vNoBtn.onclick = () => voteMilestone(i, false);
+                        
+                        actionsDiv.appendChild(vYesBtn);
+                        actionsDiv.appendChild(vNoBtn);
+                    } else {
+                        actionsDiv.innerHTML += '<span style="opacity: 0.7;">You have voted.</span>';
+                    }
+                    
+                    if (isManager) {
+                        const relBtn = document.createElement('button');
+                        relBtn.className = 'btn-finalize';
+                        relBtn.textContent = 'Finalize & Release Funds';
+                        relBtn.onclick = () => releaseFunds(i);
+                        actionsDiv.appendChild(relBtn);
+                    }
+                }
+            } else if (m.status == 4) {
+                actionsDiv.innerHTML += '<span style="color: green;">Funds Released Successfully</span>';
             }
         }
-
     } catch (error) {
-        console.error('Error loading requests:', error);
+        console.error('Error loading milestones:', error);
     }
 }
 
-/**
- * Approve a spending request
- */
-async function approveRequest(requestId) {
+async function submitProof() {
     try {
-        showStatus('Processing vote...', 'info');
-
-        await contract.methods.approveRequest(requestId).send({
-            from: currentAccount
-        });
-
-        showStatus('Vote recorded successfully!', 'success');
-        await loadRequests();
-
+        const proofLink = document.getElementById('proofInput').value;
+        if (!proofLink) return showStatus('Please enter proof link', 'error');
+        
+        showStatus('Submitting proof...', 'info');
+        await contract.methods.submitProof(currentProofId, proofLink).send({ from: currentAccount });
+        
+        showStatus('Proof submitted! Stage set to Under Review.', 'success');
+        document.getElementById('submitProofSection').style.display = 'none';
+        document.getElementById('proofInput').value = '';
+        await loadMilestones();
     } catch (error) {
-        console.error('Error approving request:', error);
-        showStatus('Failed to approve: ' + error.message, 'error');
+        showStatus('Failed: ' + error.message, 'error');
     }
 }
 
-/**
- * Reject a spending request
- */
-async function rejectRequest(requestId) {
+async function voteMilestone(id, support) {
     try {
-        showStatus('Processing vote...', 'info');
-
-        await contract.methods.rejectRequest(requestId).send({
-            from: currentAccount
-        });
-
-        showStatus('Vote recorded successfully!', 'success');
-        await loadRequests();
-
+        showStatus('Voting...', 'info');
+        await contract.methods.voteOnMilestone(id, support).send({ from: currentAccount });
+        showStatus('Vote recorded!', 'success');
+        await loadMilestones();
     } catch (error) {
-        console.error('Error rejecting request:', error);
-        showStatus('Failed to reject: ' + error.message, 'error');
+        showStatus('Failed to vote: ' + error.message, 'error');
     }
 }
 
-/**
- * Finalize a spending request (manager only)
- */
-async function finalizeRequest(requestId) {
+async function releaseFunds(id) {
     try {
-        showStatus('Finalizing request...', 'info');
-
-        await contract.methods.finalizeRequest(requestId).send({
-            from: currentAccount
-        });
-
-        showStatus('Request finalized and funds released!', 'success');
+        showStatus('Processing fund release...', 'info');
+        await contract.methods.releaseFunds(id).send({ from: currentAccount });
+        showStatus('Funds Released!', 'success');
+        await loadMilestones();
         await loadCampaignData();
-        await loadRequests();
-
     } catch (error) {
-        console.error('Error finalizing request:', error);
-        showStatus('Failed to finalize: ' + error.message, 'error');
+        showStatus('Failed: ' + error.message, 'error');
     }
 }
 
-/**
- * Show status message to user
- */
 function showStatus(message, type) {
     const statusDiv = document.getElementById('statusMessage');
     statusDiv.textContent = message;
     statusDiv.className = 'status-message status-' + type;
     statusDiv.style.display = 'block';
-
-    setTimeout(() => {
-        statusDiv.style.display = 'none';
-    }, 5000);
+    setTimeout(() => { statusDiv.style.display = 'none'; }, 5000);
 }

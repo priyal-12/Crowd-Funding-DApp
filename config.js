@@ -1,18 +1,13 @@
 // Configuration file for the CrowdFunding DApp
 
 const CONFIG = {
-    contractAddress: "0x33F99B95AD523a9Eac608492e151f4998905673F",
+    contractAddress: "0xb08f3C0B93a690c600C382233bB817E5B68cce00",
 
     // Sepolia testnet configuration
     sepoliaChainId: "0xaa36a7",
     sepoliaNetworkName: "Sepolia Testnet",
 
     contractABI: [
-        {
-            "inputs": [],
-            "stateMutability": "nonpayable",
-            "type": "constructor"
-        },
         {
             "inputs": [],
             "name": "contribute",
@@ -23,22 +18,27 @@ const CONFIG = {
         {
             "inputs": [
                 {
-                    "internalType": "string",
-                    "name": "_description",
-                    "type": "string"
+                    "internalType": "string[]",
+                    "name": "_titles",
+                    "type": "string[]"
                 },
                 {
-                    "internalType": "uint256",
-                    "name": "_amount",
-                    "type": "uint256"
+                    "internalType": "string[]",
+                    "name": "_descriptions",
+                    "type": "string[]"
                 },
                 {
-                    "internalType": "address payable",
-                    "name": "_recipient",
-                    "type": "address"
+                    "internalType": "uint256[]",
+                    "name": "_amounts",
+                    "type": "uint256[]"
+                },
+                {
+                    "internalType": "address payable[]",
+                    "name": "_beneficiaries",
+                    "type": "address[]"
                 }
             ],
-            "name": "createRequest",
+            "name": "createCampaign",
             "outputs": [],
             "stateMutability": "nonpayable",
             "type": "function"
@@ -47,11 +47,11 @@ const CONFIG = {
             "inputs": [
                 {
                     "internalType": "uint256",
-                    "name": "_requestId",
+                    "name": "_milestoneId",
                     "type": "uint256"
                 }
             ],
-            "name": "approveRequest",
+            "name": "releaseFunds",
             "outputs": [],
             "stateMutability": "nonpayable",
             "type": "function"
@@ -60,67 +60,51 @@ const CONFIG = {
             "inputs": [
                 {
                     "internalType": "uint256",
-                    "name": "_requestId",
+                    "name": "_milestoneId",
                     "type": "uint256"
-                }
-            ],
-            "name": "rejectRequest",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "_requestId",
-                    "type": "uint256"
-                }
-            ],
-            "name": "finalizeRequest",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "_requestId",
-                    "type": "uint256"
-                }
-            ],
-            "name": "getRequest",
-            "outputs": [
+                },
                 {
                     "internalType": "string",
-                    "name": "description",
+                    "name": "_proof",
                     "type": "string"
-                },
+                }
+            ],
+            "name": "submitProof",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "inputs": [
                 {
                     "internalType": "uint256",
-                    "name": "amount",
+                    "name": "_milestoneId",
                     "type": "uint256"
-                },
-                {
-                    "internalType": "address",
-                    "name": "recipient",
-                    "type": "address"
                 },
                 {
                     "internalType": "bool",
-                    "name": "completed",
+                    "name": "_support",
                     "type": "bool"
-                },
+                }
+            ],
+            "name": "voteOnMilestone",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "campaignCreated",
+            "outputs": [
                 {
-                    "internalType": "uint256",
-                    "name": "approvalCount",
-                    "type": "uint256"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "rejectCount",
-                    "type": "uint256"
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
                 }
             ],
             "stateMutability": "view",
@@ -129,22 +113,30 @@ const CONFIG = {
         {
             "inputs": [
                 {
-                    "internalType": "uint256",
-                    "name": "_requestId",
-                    "type": "uint256"
-                },
-                {
                     "internalType": "address",
-                    "name": "_voter",
+                    "name": "",
                     "type": "address"
                 }
             ],
-            "name": "hasVoted",
+            "name": "contributors",
             "outputs": [
                 {
-                    "internalType": "bool",
+                    "internalType": "uint256",
                     "name": "",
-                    "type": "bool"
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "currentMilestoneIndex",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
                 }
             ],
             "stateMutability": "view",
@@ -164,6 +156,102 @@ const CONFIG = {
             "type": "function"
         },
         {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "_id",
+                    "type": "uint256"
+                }
+            ],
+            "name": "getMilestone",
+            "outputs": [
+                {
+                    "internalType": "string",
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "address",
+                    "name": "beneficiary",
+                    "type": "address"
+                },
+                {
+                    "internalType": "enum CrowdFunding.MilestoneStatus",
+                    "name": "status",
+                    "type": "uint8"
+                },
+                {
+                    "internalType": "string",
+                    "name": "proof",
+                    "type": "string"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "yesVotes",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "noVotes",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "released",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "getMilestonesCount",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "name": "hasVoted",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
             "inputs": [],
             "name": "manager",
             "outputs": [
@@ -171,6 +259,65 @@ const CONFIG = {
                     "internalType": "address",
                     "name": "",
                     "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "name": "milestones",
+            "outputs": [
+                {
+                    "internalType": "string",
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "address payable",
+                    "name": "beneficiary",
+                    "type": "address"
+                },
+                {
+                    "internalType": "enum CrowdFunding.MilestoneStatus",
+                    "name": "status",
+                    "type": "uint8"
+                },
+                {
+                    "internalType": "string",
+                    "name": "proof",
+                    "type": "string"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "yesVotes",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "noVotes",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "released",
+                    "type": "bool"
                 }
             ],
             "stateMutability": "view",
@@ -192,38 +339,6 @@ const CONFIG = {
         {
             "inputs": [],
             "name": "totalFunds",
-            "outputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [],
-            "name": "requestCount",
-            "outputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "",
-                    "type": "address"
-                }
-            ],
-            "name": "contributors",
             "outputs": [
                 {
                     "internalType": "uint256",
