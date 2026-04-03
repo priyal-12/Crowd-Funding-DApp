@@ -1,16 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --primary-color: #1E3A8A; /* Deep Blue */
-    --secondary-color: #3B82F6; /* Soft Blue */
-    --bg-color: #F9FAFB; /* Light Gray */
-    --card-bg: #FFFFFF; /* White */
-    --text-main: #111827; /* Dark Gray */
-    --success-color: #10B981; /* Green */
-    --error-color: #EF4444; /* Red */
+    --primary-color: #3B82F6; /* Lighter Blue to pop on black */
+    --secondary-color: #60A5FA; /* Soft Light Blue */
+    --bg-color: #000000; /* Pure Black Background */
+    --card-bg: #111827; /* Dark Gray Card */
+    --text-main: #F9FAFB; /* White text */
+    --success-color: #34D399; /* Bright Green */
+    --error-color: #F87171; /* Bright Red */
     
     --radius: 12px;
-    --shadow: 0 2px 8px rgba(0,0,0,0.05);
+    --shadow: 0 4px 12px rgba(0,0,0,0.5);
     --transition: all 0.2s ease-in-out;
 }
 
@@ -39,12 +39,13 @@ header {
     position: sticky;
     top: 0;
     z-index: 100;
+    border-bottom: 1px solid #1F2937;
 }
 
 header h1 {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--primary-color);
+    color: var(--text-main);
 }
 
 .container {
@@ -60,7 +61,7 @@ header h1 {
     padding: 24px;
     margin-bottom: 24px;
     box-shadow: var(--shadow);
-    border: 1px solid #E5E7EB; /* Very light border for definition */
+    border: 1px solid #1F2937;
 }
 
 h2 {
@@ -78,15 +79,15 @@ h2 {
 }
 
 .stat-item {
-    background: var(--bg-color);
+    background: #1F2937;
     padding: 16px;
     border-radius: 8px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid #374151;
 }
 
 .stat-label {
     font-size: 0.875rem;
-    color: #4B5563; /* Medium gray */
+    color: #9CA3AF;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 600;
@@ -97,6 +98,7 @@ h2 {
     font-weight: 700;
     margin-top: 8px;
     word-break: break-all;
+    color: #FFFFFF;
 }
 
 /* Progress Bar */
@@ -115,14 +117,14 @@ h2 {
 .progress-bar {
     width: 100%;
     height: 12px;
-    background-color: #E5E7EB;
+    background-color: #374151;
     border-radius: 6px;
     overflow: hidden;
 }
 
 .progress-fill {
     height: 100%;
-    background-color: var(--secondary-color);
+    background-color: var(--primary-color);
     width: 0%;
     transition: width 0.5s ease;
 }
@@ -137,21 +139,28 @@ label {
     margin-bottom: 6px;
     font-weight: 500;
     font-size: 0.9rem;
+    color: #E5E7EB;
 }
 
 input {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid #D1D5DB;
+    background-color: #1F2937;
+    border: 1px solid #374151;
+    color: var(--text-main);
     border-radius: 8px;
     outline: none;
     font-size: 1rem;
     transition: var(--transition);
 }
 
+input::placeholder {
+    color: #6B7280;
+}
+
 input:focus {
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 /* Buttons */
@@ -167,40 +176,40 @@ button {
 
 .btn-primary {
     background-color: var(--primary-color);
-    color: white;
+    color: #FFFFFF;
 }
 
 .btn-primary:hover {
-    background-color: #172a6b;
+    background-color: #2563EB;
 }
 
 .btn-secondary {
     background-color: transparent;
-    color: var(--secondary-color);
-    border: 1px solid var(--secondary-color);
+    color: var(--text-main);
+    border: 1px solid #4B5563;
 }
 
 .btn-secondary:hover {
-    background-color: rgba(59, 130, 246, 0.05);
+    background-color: #1F2937;
 }
 
 .btn-approve {
-    background-color: var(--success-color);
+    background-color: #059669;
     color: white;
     margin-right: 10px;
 }
 
 .btn-approve:hover {
-    background-color: #059669;
+    background-color: #047857;
 }
 
 .btn-reject {
-    background-color: var(--error-color);
+    background-color: #DC2626;
     color: white;
 }
 
 .btn-reject:hover {
-    background-color: #DC2626;
+    background-color: #B91C1C;
 }
 
 .btn-finalize {
@@ -212,15 +221,15 @@ button {
 
 /* Milestones */
 .milestone-input-group {
-    border: 1px dashed #D1D5DB;
-    background: #FFFFFF;
+    border: 1px dashed #4B5563;
+    background: #1F2937 !important;
     box-shadow: none;
     margin-bottom: 16px;
 }
 
 .request-item {
-    background: #FFFFFF;
-    border: 1px solid #E5E7EB;
+    background: #1F2937;
+    border: 1px solid #374151;
     border-radius: var(--radius);
     padding: 20px;
     margin-bottom: 20px;
@@ -231,7 +240,7 @@ button {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #F3F4F6;
+    border-bottom: 1px solid #374151;
     padding-bottom: 12px;
     margin-bottom: 12px;
 }
@@ -251,41 +260,41 @@ button {
 }
 
 .status-pending {
-    background-color: #F3F4F6;
-    color: #4B5563;
+    background-color: #374151;
+    color: #D1D5DB;
 }
 
 .status-review {
-    background-color: #FEF3C7;
-    color: #D97706; /* Amber/Orange indicates review */
+    background-color: #78350F;
+    color: #FBBF24;
 }
 
 .status-completed {
-    background-color: #D1FAE5;
+    background-color: #064E3B;
     color: var(--success-color);
 }
 
 .status-reject {
-    background-color: #FEE2E2;
+    background-color: #7F1D1D;
     color: var(--error-color);
 }
 
 .request-details p {
     margin-bottom: 8px;
     font-size: 0.95rem;
+    color: #D1D5DB;
+}
+.request-details strong {
+    color: #FFFFFF;
 }
 
 .voting-results {
-    background-color: #F9FAFB;
-    border: 1px solid #E5E7EB;
+    background-color: #111827;
+    border: 1px solid #374151;
     border-radius: 8px;
     padding: 12px;
     margin-top: 16px;
     font-size: 0.9rem;
-}
-
-.voting-results strong {
-    color: var(--text-main);
 }
 
 .proof-link {
@@ -303,12 +312,12 @@ button {
 .request-actions {
     margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px solid #F3F4F6;
+    border-top: 1px solid #374151;
 }
 
 .helper-text {
     font-size: 0.85rem;
-    color: #6B7280;
+    color: #9CA3AF;
     margin-top: 8px;
     font-style: italic;
 }
@@ -324,9 +333,9 @@ button {
     bottom: 20px;
     right: 20px;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
-.status-info { background-color: var(--secondary-color); color: white; }
-.status-success { background-color: var(--success-color); color: white; }
-.status-error { background-color: var(--error-color); color: white; }
+.status-info { background-color: var(--primary-color); color: white; }
+.status-success { background-color: #059669; color: white; }
+.status-error { background-color: #DC2626; color: white; }

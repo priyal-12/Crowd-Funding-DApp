@@ -241,7 +241,7 @@ async function loadMilestones() {
                 <div class="request-details">
                     <p><strong>Description:</strong> ${m.description}</p>
                     <p><strong>Amount Allocated:</strong> ${web3.utils.fromWei(m.amount, 'ether')} ETH</p>
-                    <p><strong>Beneficiary:</strong> <span style="font-family: monospace; font-size: 0.9em; background: #F3F4F6; padding: 2px 6px; border-radius: 4px;">${m.beneficiary}</span></p>
+                    <p><strong>Beneficiary:</strong> <span style="font-family: monospace; font-size: 0.9em; background: #374151; padding: 2px 6px; border-radius: 4px;">${m.beneficiary}</span></p>
                     ${m.proof ? `<p style="margin-top: 10px;"><strong>Proof Submitted:</strong> <a href="${m.proof}" target="_blank" class="proof-link">View Proof</a></p>` : ''}
                     <div class="voting-results">
                         <p><strong>Voting Power (Total ETH):</strong></p>
