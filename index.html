@@ -13,9 +13,10 @@
         <nav class="navbar">
             <div class="logo" id="homeLogo" style="cursor:pointer;">
                 <span>⚡</span>
-                <h1>CrowdFund Platform</h1>
+                <h1>CrowdFund</h1>
             </div>
             <div class="nav-actions">
+                <button id="navDashboardBtn" class="btn-secondary" style="display: none; margin-right: 15px;">Dashboard</button>
                 <div id="walletInfo" class="wallet-badge" style="display: none;">
                     <span class="network-dot"></span>
                     <span id="networkName">Sepolia</span>
@@ -34,25 +35,131 @@
 
             <!-- Home View -->
             <section id="homeView" class="view-section">
-                <div class="platform-hero">
-                    <h2>Decentralized, Phase-Based Funding.</h2>
-                    <p>Create a campaign, define your phases, and coordinate transparently with your community. No intermediaries, no custodians.</p>
-                    <button id="navCreateCampaignBtn" class="btn-primary btn-large">Create New Campaign</button>
+                <!-- Hero Section -->
+                <div class="platform-hero" style="padding: 80px 20px; text-align: center; border:none; background: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15), transparent 70%);">
+                    <h2 style="font-size: 3.5rem; margin-bottom: 20px; font-weight: 800; letter-spacing: -1px;">Help Others, Directly.</h2>
+                    <p style="font-size: 1.25rem; max-width: 800px; margin: 0 auto 40px; color: #D1D5DB; line-height: 1.5;">People give money to help others, the money goes directly to the needy, no middleman, everything is open and safe.</p>
+                    <div style="display:flex; justify-content:center; gap: 20px;">
+                        <button class="btn-primary btn-large" onclick="document.getElementById('exploreSection').scrollIntoView({behavior: 'smooth'})">Explore Campaigns</button>
+                        <button id="navCreateCampaignBtn" class="btn-secondary btn-large">Start a Campaign</button>
+                    </div>
                 </div>
-                
-                <div class="section-header">
-                    <h3>Active Campaigns</h3>
+
+                <!-- Stats Section -->
+                <div class="stats-banner" style="display:flex; justify-content:center; gap: 60px; margin-bottom: 80px; background: rgba(255,255,255,0.02); padding: 40px; border-radius: 16px; border: 1px solid var(--card-border);">
+                    <div style="text-align:center;">
+                        <div style="font-size: 3rem; font-weight: 800; color: var(--primary-color);" id="globalTotalEth">0 ETH</div>
+                        <div style="color: var(--text-muted); text-transform: uppercase; font-size: 0.95rem; font-weight: 600; letter-spacing: 1px; margin-top: 5px;">Total Raised</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size: 3rem; font-weight: 800; color: var(--success-color);" id="globalTotalCampaigns">0</div>
+                        <div style="color: var(--text-muted); text-transform: uppercase; font-size: 0.95rem; font-weight: 600; letter-spacing: 1px; margin-top: 5px;">Campaigns</div>
+                    </div>
+                </div>
+
+                <!-- How It Works Section -->
+                <div style="margin-bottom: 80px;">
+                    <h3 style="text-align:center; font-size: 2.2rem; margin-bottom: 40px;">How It Works</h3>
+                    <div class="steps-container">
+                        <div class="step-card">
+                            <div class="step-icon">📝</div>
+                            <h4>1. Create</h4>
+                            <p>Set a goal and split it into phases.</p>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-icon">💰</div>
+                            <h4>2. Fund</h4>
+                            <p>People contribute to the current phase.</p>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-icon">🗳️</div>
+                            <h4>3. Vote</h4>
+                            <p>Community votes on the work plan.</p>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-icon">🚀</div>
+                            <h4>4. Release</h4>
+                            <p>Funds go directly to the beneficiary.</p>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-icon">📸</div>
+                            <h4>5. Proof</h4>
+                            <p>Creator shows proof of work done.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trust Section -->
+                <div style="margin-bottom: 80px; background: #080C14; padding: 50px 30px; border-radius: 16px; border: 1px solid var(--card-border);">
+                    <h3 style="text-align:center; font-size: 2.2rem; margin-bottom: 40px;">Why Trust Us?</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 40px; text-align: center;">
+                        <div>
+                            <div style="font-size: 3rem; margin-bottom: 15px;">🛡️</div>
+                            <h4 style="color: white; margin-bottom: 10px; font-size: 1.2rem;">No Middleman</h4>
+                            <p style="color: var(--text-muted); font-size: 0.95rem;">We don't hold the funds. Immutable smart contracts handle everything automatically.</p>
+                        </div>
+                        <div>
+                            <div style="font-size: 3rem; margin-bottom: 15px;">💸</div>
+                            <h4 style="color: white; margin-bottom: 10px; font-size: 1.2rem;">Direct Funding</h4>
+                            <p style="color: var(--text-muted); font-size: 0.95rem;">Money goes directly to the recipient's wallet. The creator never touches it.</p>
+                        </div>
+                        <div>
+                            <div style="font-size: 3rem; margin-bottom: 15px;">⚖️</div>
+                            <h4 style="color: white; margin-bottom: 10px; font-size: 1.2rem;">Community Voting</h4>
+                            <p style="color: var(--text-muted); font-size: 0.95rem;">1 Contributor = 1 Vote. You decide if the plan is good enough to release funds.</p>
+                        </div>
+                        <div>
+                            <div style="font-size: 3rem; margin-bottom: 15px;">🔍</div>
+                            <h4 style="color: white; margin-bottom: 10px; font-size: 1.2rem;">Transparent Proof</h4>
+                            <p style="color: var(--text-muted); font-size: 0.95rem;">Creators must show verifiable proof of work before starting the next phase.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Featured Campaigns -->
+                <div id="exploreSection" class="section-header" style="margin-bottom: 30px;">
+                    <h3 style="font-size: 2.2rem; text-align:center;">Explore Campaigns</h3>
                 </div>
                 <div id="campaignsGrid" class="campaigns-grid">
                     <!-- Dynamic Campaign Cards injected here -->
                 </div>
             </section>
 
+            <!-- Dashboard View -->
+            <section id="dashboardView" class="view-section" style="display: none;">
+                <div class="view-header" style="margin-bottom: 40px; text-align: center;">
+                    <h2 style="font-size: 2.8rem; margin-bottom: 10px;">Your Dashboard</h2>
+                    <p style="color: var(--text-muted); font-size: 1.1rem;">Manage your contributions and campaigns.</p>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Contributor Section -->
+                    <div class="dashboard-panel card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid var(--card-border); padding-bottom: 15px;">
+                            <h3 style="margin:0;">💸 My Contributions</h3>
+                        </div>
+                        <div id="dbContributionsList" class="db-list">
+                            <!-- Items injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Creator Section -->
+                    <div class="dashboard-panel card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid var(--card-border); padding-bottom: 15px;">
+                            <h3 style="margin:0;">🛠️ My Campaigns</h3>
+                        </div>
+                        <div id="dbCampaignsList" class="db-list">
+                            <!-- Items injected here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Create Campaign View -->
             <section id="createCampaignView" class="view-section" style="display: none;">
                 <div class="view-header">
-                    <button id="backToHomeBtn1" class="btn-text">← Back to Platform</button>
-                    <h2>Create a Campaign</h2>
+                    <button id="backToHomeBtn1" class="btn-text">← Back to Home</button>
+                    <h2 style="font-size: 2.5rem; margin-top: 10px;">Create a Campaign</h2>
                     <p>Define the beneficiary (NGO/Recipient) and split your goal into funding phases.</p>
                 </div>
                 
@@ -76,16 +183,16 @@
                         </div>
                     </div>
                     
-                    <button id="submitCampaignBtn" class="btn-primary btn-full" style="margin-top: 20px;">Deploy Campaign</button>
+                    <button id="submitCampaignBtn" class="btn-primary btn-full" style="margin-top: 20px; padding: 15px; font-size: 1.1rem;">Deploy Campaign</button>
                 </div>
             </section>
 
             <!-- Campaign Details View -->
             <section id="campaignDetailsView" class="view-section" style="display: none;">
                 <div class="view-header">
-                    <button id="backToHomeBtn2" class="btn-text">← Back to Platform</button>
-                    <div class="campaign-title-bar">
-                        <h2 id="cdTitle">Campaign #<span id="cdId">--</span></h2>
+                    <button id="backToHomeBtn2" class="btn-text">← Back to Home</button>
+                    <div class="campaign-title-bar" style="margin-top: 10px;">
+                        <h2 id="cdTitle" style="font-size: 2.2rem; margin:0;">Campaign #<span id="cdId">--</span></h2>
                     </div>
                 </div>
 
@@ -119,7 +226,7 @@
 
                         <!-- Phase Tracker -->
                         <div class="card">
-                            <h3>Phase Lifecycle Overview</h3>
+                            <h3 style="margin-bottom: 20px;">Phase Lifecycle Overview</h3>
                             <div id="phaseTracker" class="phase-tracker">
                                 <!-- Tracker items injected here -->
                             </div>
@@ -128,7 +235,7 @@
                         <!-- Current Phase Action Area -->
                         <div class="card action-card" id="currentPhaseCard">
                             <div class="action-header">
-                                <h3>Current Phase: <span id="cpNumber">--</span></h3>
+                                <h3 style="margin:0;">Current Phase: <span id="cpNumber">--</span></h3>
                                 <span class="status-badge" id="cpStatusBadge">Loading...</span>
                             </div>
                             
@@ -180,14 +287,14 @@
                                     <div class="form-group">
                                         <textarea id="planDetailsInput" placeholder="Enter objectives, timeline, deliverables for this phase..." rows="3"></textarea>
                                     </div>
-                                    <button id="btnSubmitPlan" class="btn-primary">Submit Plan for Review</button>
+                                    <button id="btnSubmitPlan" class="btn-primary btn-full">Submit Plan for Review</button>
                                 </div>
 
                                 <!-- Voting Form -->
                                 <div id="formVote" class="dynamic-form" style="display: none;">
                                     <div class="btn-group" style="display:flex; gap:10px;">
-                                        <button id="btnVoteYes" class="btn-approve" style="flex:1;">Vote Yes 👍</button>
-                                        <button id="btnVoteNo" class="btn-reject" style="flex:1;">Vote No 👎</button>
+                                        <button id="btnVoteYes" class="btn-approve" style="flex:1; padding:15px; font-size:1.1rem;">Vote Yes 👍</button>
+                                        <button id="btnVoteNo" class="btn-reject" style="flex:1; padding:15px; font-size:1.1rem;">Vote No 👎</button>
                                     </div>
                                 </div>
 
@@ -211,9 +318,9 @@
 
                                 <!-- Claim Refund Form -->
                                 <div id="formRefund" class="dynamic-form" style="display: none;">
-                                    <div style="padding:15px; background:rgba(239, 68, 68, 0.1); border-radius:8px; border:1px solid rgba(239, 68, 68, 0.2);">
-                                        <p class="warning-text" style="color:var(--danger-color); margin-bottom:10px;">Plan was rejected. You can claim a refund for your contribution to this phase.</p>
-                                        <button id="btnClaimRefund" class="btn-reject">Claim My Refund</button>
+                                    <div style="padding:20px; background:rgba(239, 68, 68, 0.1); border-radius:8px; border:1px solid rgba(239, 68, 68, 0.2); text-align:center;">
+                                        <p class="warning-text" style="color:var(--danger-color); margin-bottom:15px; font-weight:bold;">Plan was rejected. You can claim a refund for your contribution to this phase.</p>
+                                        <button id="btnClaimRefund" class="btn-reject btn-full" style="padding:15px; font-size:1.1rem;">Claim My Refund</button>
                                     </div>
                                 </div>
 
@@ -223,11 +330,11 @@
                                 </div>
 
                                 <!-- Rate Creator Form -->
-                                <div id="formRateCreator" class="dynamic-form" style="display: none; border-top: 1px solid var(--card-border); padding-top: 20px; margin-top: 20px;">
-                                    <h4 style="margin-bottom:10px;">Rate the Creator</h4>
-                                    <div class="form-group" style="margin-bottom:10px;">
+                                <div id="formRateCreator" class="dynamic-form" style="display: none; border-top: 1px solid var(--card-border); padding-top: 25px; margin-top: 25px;">
+                                    <h4 style="margin-bottom:15px; font-size:1.1rem;">Rate the Creator</h4>
+                                    <div class="form-group" style="margin-bottom:15px;">
                                         <label>Rating (1-5)</label>
-                                        <select id="creatorRatingInput" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.2); border: 1px solid #374151; color: white; border-radius: 8px;">
+                                        <select id="creatorRatingInput" style="width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid #374151; color: white; border-radius: 8px;">
                                             <option value="5">⭐⭐⭐⭐⭐ (5) Excellent</option>
                                             <option value="4">⭐⭐⭐⭐ (4) Good</option>
                                             <option value="3">⭐⭐⭐ (3) Average</option>
@@ -236,13 +343,13 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <textarea id="creatorFeedbackInput" placeholder="Optional feedback about the creator..." rows="2"></textarea>
+                                        <textarea id="creatorFeedbackInput" placeholder="Optional feedback about the creator..." rows="3"></textarea>
                                     </div>
-                                    <button id="btnRateCreator" class="btn-primary btn-full">Submit Rating</button>
+                                    <button id="btnRateCreator" class="btn-primary btn-full" style="padding:15px;">Submit Rating</button>
                                 </div>
 
                                 <!-- Message Box -->
-                                <div id="actionMessage" class="action-message" style="display: none; padding:10px; margin-top:10px; border-radius:4px; text-align:center;"></div>
+                                <div id="actionMessage" class="action-message" style="display: none; padding:15px; margin-top:15px; border-radius:8px; text-align:center; background: rgba(255,255,255,0.05); color: #D1D5DB;"></div>
                             </div>
                         </div>
                     </div>
@@ -256,12 +363,12 @@
 
     <!-- Reviews Modal -->
     <div id="reviewsModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content card">
-            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--card-border); padding-bottom:15px; margin-bottom:15px;">
-                <h3>Creator Reviews</h3>
-                <button id="closeReviewsBtn" class="btn-text" style="margin:0; font-size:1.2rem;">✕</button>
+        <div class="modal-content card" style="border: 1px solid var(--card-border);">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--card-border); padding-bottom:20px; margin-bottom:20px;">
+                <h3 style="margin:0; font-size:1.5rem;">Creator Reviews</h3>
+                <button id="closeReviewsBtn" class="btn-text" style="margin:0; font-size:1.5rem;">✕</button>
             </div>
-            <div id="reviewsList" class="reviews-list" style="max-height: 400px; overflow-y: auto;">
+            <div id="reviewsList" class="reviews-list" style="max-height: 500px; overflow-y: auto;">
                 <!-- Reviews injected here -->
             </div>
         </div>

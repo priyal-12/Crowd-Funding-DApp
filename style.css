@@ -231,5 +231,94 @@ input:focus, textarea:focus { border-color: var(--primary-color); box-shadow: 0 
 .trust-stars {
     color: #FBBF24;
     font-size: 0.95rem;
+}
+
+/* Steps Container */
+.steps-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.step-card {
+    flex: 1;
+    min-width: 150px;
+    background: var(--card-bg);
+    padding: 30px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    text-align: center;
+    transition: transform 0.2s;
+}
+.step-card:hover {
+    transform: translateY(-5px);
+}
+.step-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+.step-card h4 {
+    margin-bottom: 10px;
+    color: var(--text-main);
+}
+.step-card p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* Dashboard UI */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.dashboard-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 25px;
+}
+.db-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+.db-item {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.db-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.db-item-title {
     font-weight: 600;
+    color: var(--primary-color);
+}
+.db-item-body p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+.db-action-needed {
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid var(--warning-color);
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+.db-action-needed p {
+    color: var(--warning-color);
+    font-weight: 600;
+    margin: 0 0 10px 0;
+    font-size: 0.9rem;
 }

@@ -18,6 +18,7 @@ window.addEventListener('load', async () => {
     document.getElementById('navCreateCampaignBtn').addEventListener('click', () => showView('createCampaignView'));
     document.getElementById('backToHomeBtn1').addEventListener('click', () => showView('homeView'));
     document.getElementById('backToHomeBtn2').addEventListener('click', () => showView('homeView'));
+    document.getElementById('navDashboardBtn').addEventListener('click', () => showView('dashboardView'));
 
     // Create Campaign
     document.getElementById('addPhaseBtn').addEventListener('click', addPhaseField);
@@ -52,10 +53,14 @@ function showView(viewId) {
     document.getElementById('homeView').style.display = 'none';
     document.getElementById('createCampaignView').style.display = 'none';
     document.getElementById('campaignDetailsView').style.display = 'none';
+    document.getElementById('dashboardView').style.display = 'none';
     document.getElementById(viewId).style.display = 'block';
 
     if (viewId === 'homeView' && contract) {
         loadPlatformData();
+    }
+    if (viewId === 'dashboardView' && contract && currentAccount) {
+        loadDashboardData();
     }
 }
 
@@ -80,6 +85,7 @@ async function connectWallet() {
         document.getElementById('walletAddress').textContent = currentAccount.substring(0, 6) + '...' + currentAccount.substring(38);
         document.getElementById('walletInfo').style.display = 'inline-flex';
         document.getElementById('connectBtn').style.display = 'none';
+        document.getElementById('navDashboardBtn').style.display = 'inline-block';
 
         showToast('Wallet connected!', 'success');
         
@@ -97,22 +103,37 @@ async function loadPlatformData() {
     if (!contract) return;
     try {
         const count = await contract.methods.campaignCount().call();
+        document.getElementById('globalTotalCampaigns').textContent = count;
+        
+        let totalEth = 0;
         const grid = document.getElementById('campaignsGrid');
         grid.innerHTML = '';
 
         if (count == 0) {
-            grid.innerHTML = '<p style="color:#888;">No campaigns found on the platform yet.</p>';
+            grid.innerHTML = '<p style="color:#888; text-align:center; grid-column: 1/-1;">No campaigns found on the platform yet.</p>';
+            document.getElementById('globalTotalEth').textContent = '0 ETH';
             return;
         }
 
         for (let i = 0; i < count; i++) {
             const camp = await contract.methods.campaigns(i).call();
+            totalEth += parseFloat(web3.utils.fromWei(camp.totalFundsRaised, 'ether'));
+            
             const pIdx = camp.currentPhaseIndex;
             let statusText = "Completed";
             
             if (pIdx < camp.phasesCount) {
                 const phase = await contract.methods.campaignPhases(i, pIdx).call();
                 statusText = PhaseStatusMap[phase.status];
+            }
+            
+            // Get Trust Score
+            const points = parseInt(await contract.methods.creatorTotalRatingPoints(camp.creator).call());
+            const rCount = parseInt(await contract.methods.creatorRatingCount(camp.creator).call());
+            let trustHTML = '<span style="font-size:0.85rem; color:#9CA3AF;">No Ratings</span>';
+            if (rCount > 0) {
+                const avg = (points / rCount).toFixed(1);
+                trustHTML = `<span style="font-size:0.85rem; color:#FBBF24;">⭐ ${avg}</span>`;
             }
             
             const totalGoal = web3.utils.fromWei(camp.totalGoal, 'ether');
@@ -126,17 +147,145 @@ async function loadPlatformData() {
                     <span class="status-badge" style="font-size:0.75em;">${statusText}</span>
                 </div>
                 <div class="card-body">
-                    <p><strong>Goal:</strong> ${totalGoal} ETH</p>
-                    <p><strong>Raised:</strong> ${totalRaised} ETH</p>
-                    <p><strong>Phases:</strong> ${pIdx >= camp.phasesCount ? camp.phasesCount : parseInt(pIdx)+1} / ${camp.phasesCount}</p>
+                    <p style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>Goal:</strong> <span>${totalGoal} ETH</span></p>
+                    <p style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>Raised:</strong> <span>${totalRaised} ETH</span></p>
+                    <p style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>Creator Trust:</strong> ${trustHTML}</p>
                 </div>
                 <button class="btn-primary btn-full" style="margin-top:15px;" onclick="viewCampaignDetails(${i})">View Details</button>
             `;
             grid.appendChild(card);
         }
+        
+        document.getElementById('globalTotalEth').textContent = totalEth.toFixed(2) + ' ETH';
+        
     } catch (e) {
         console.error(e);
         showToast('Error loading platform data.', 'error');
+    }
+}
+
+// --- DASHBOARD VIEW ---
+async function loadDashboardData() {
+    if (!contract || !currentAccount) return;
+    try {
+        const count = await contract.methods.campaignCount().call();
+        const myContribList = document.getElementById('dbContributionsList');
+        const myCampList = document.getElementById('dbCampaignsList');
+        
+        myContribList.innerHTML = '';
+        myCampList.innerHTML = '';
+        
+        let contribCount = 0;
+        let campCount = 0;
+
+        for (let id = 0; id < count; id++) {
+            const camp = await contract.methods.campaigns(id).call();
+            const pIdx = parseInt(camp.currentPhaseIndex);
+            const pCount = parseInt(camp.phasesCount);
+            const isMyCampaign = (camp.creator.toLowerCase() === currentAccount.toLowerCase());
+            
+            let statusText = "Completed";
+            let statusNum = 5;
+            let phaseData = null;
+            if (pIdx < pCount) {
+                phaseData = await contract.methods.campaignPhases(id, pIdx).call();
+                statusText = PhaseStatusMap[phaseData.status];
+                statusNum = parseInt(phaseData.status);
+            }
+
+            // Check if I contributed
+            let hasContributed = false;
+            let totalMyContribution = 0;
+            for (let i = 0; i < pCount; i++) {
+                const contrib = parseFloat(web3.utils.fromWei(await contract.methods.phaseContributions(id, i, currentAccount).call(), 'ether'));
+                if (contrib > 0) {
+                    hasContributed = true;
+                    totalMyContribution += contrib;
+                }
+            }
+
+            // CREATOR LOGIC
+            if (isMyCampaign) {
+                campCount++;
+                let actionHTML = '';
+                
+                if (statusNum === 1) { // PlanPending
+                    actionHTML = `<div class="db-action-needed"><p>Phase Fully Funded!</p><button class="btn-primary btn-small" onclick="viewCampaignDetails(${id})">Submit Work Plan</button></div>`;
+                } else if (statusNum === 2) { // Voting
+                    actionHTML = `<div class="db-action-needed"><p>Voting in Progress</p><button class="btn-primary btn-small" onclick="viewCampaignDetails(${id})">Finalize Voting (If time passed)</button></div>`;
+                } else if (statusNum === 3) { // Approved
+                    actionHTML = `<div class="db-action-needed"><p>Plan Approved!</p><button class="btn-primary btn-small" onclick="viewCampaignDetails(${id})">Release Funds</button></div>`;
+                } else if (statusNum === 4) { // WorkInProgress
+                    actionHTML = `<div class="db-action-needed"><p>Work in Progress</p><button class="btn-primary btn-small" onclick="viewCampaignDetails(${id})">Submit Proof of Work</button></div>`;
+                } else if (statusNum === 6) { // Rejected
+                    actionHTML = `<div class="db-action-needed"><p>Plan Rejected</p><button class="btn-secondary btn-small" onclick="viewCampaignDetails(${id})">Reset Phase</button></div>`;
+                }
+
+                myCampList.innerHTML += `
+                    <div class="db-item">
+                        <div class="db-item-header">
+                            <span class="db-item-title">Campaign #${id}</span>
+                            <span class="status-badge" style="font-size:0.7em;">${statusText}</span>
+                        </div>
+                        <div class="db-item-body">
+                            <p>Phase: ${pIdx >= pCount ? pCount : pIdx + 1} / ${pCount}</p>
+                            <p>Total Raised: ${web3.utils.fromWei(camp.totalFundsRaised, 'ether')} ETH</p>
+                        </div>
+                        ${actionHTML}
+                        <button class="btn-text" style="margin-top:10px; font-size:0.85rem;" onclick="viewCampaignDetails(${id})">View Details →</button>
+                    </div>
+                `;
+            }
+
+            // CONTRIBUTOR LOGIC
+            if (hasContributed) {
+                contribCount++;
+                let actionHTML = '';
+                
+                if (statusNum === 2) { // Voting
+                    const myAttempt = await contract.methods.phaseAttempts(id, pIdx).call();
+                    const hasVoted = await contract.methods.hasVoted(id, pIdx, myAttempt, currentAccount).call();
+                    if (!hasVoted) {
+                        actionHTML = `<div class="db-action-needed"><p>Action Required: Voting is open!</p><button class="btn-primary btn-small" onclick="viewCampaignDetails(${id})">Vote on Plan</button></div>`;
+                    }
+                } else if (statusNum === 6) { // Rejected
+                    const currentPhaseContrib = parseFloat(web3.utils.fromWei(await contract.methods.phaseContributions(id, pIdx, currentAccount).call(), 'ether'));
+                    if (currentPhaseContrib > 0) {
+                        actionHTML = `<div class="db-action-needed"><p>Plan Rejected!</p><button class="btn-reject btn-small" onclick="viewCampaignDetails(${id})">Claim Refund</button></div>`;
+                    }
+                }
+
+                const hasRated = await contract.methods.hasRatedCampaign(id, currentAccount).call();
+                if (!hasRated && !isMyCampaign) {
+                    actionHTML += `<div class="db-action-needed" style="background:rgba(59, 130, 246, 0.1); border-color:var(--primary-color);"><p style="color:var(--primary-color);">Rate your experience</p><button class="btn-primary btn-small" onclick="viewCampaignDetails(${id})">Rate Creator</button></div>`;
+                }
+
+                myContribList.innerHTML += `
+                    <div class="db-item">
+                        <div class="db-item-header">
+                            <span class="db-item-title">Campaign #${id}</span>
+                            <span class="status-badge" style="font-size:0.7em;">${statusText}</span>
+                        </div>
+                        <div class="db-item-body">
+                            <p>My Total Contribution: ${totalMyContribution.toFixed(3)} ETH</p>
+                        </div>
+                        ${actionHTML}
+                        <button class="btn-text" style="margin-top:10px; font-size:0.85rem;" onclick="viewCampaignDetails(${id})">View Details →</button>
+                    </div>
+                `;
+            }
+        }
+
+        if (contribCount === 0) {
+            myContribList.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 20px;">You haven\'t contributed to any campaigns yet.</p>';
+        }
+        if (campCount === 0) {
+            myCampList.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 20px;">You haven\'t created any campaigns yet.</p>';
+        }
+
+    } catch (e) {
+        console.error(e);
+        showToast('Error loading dashboard data.', 'error');
     }
 }
 
