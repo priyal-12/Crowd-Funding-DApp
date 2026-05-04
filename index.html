@@ -161,7 +161,8 @@
             <section id="dashboardView" class="view-section" style="display: none;">
                 <div class="view-header" style="margin-bottom: 40px; text-align: center;">
                     <h2 style="font-size: 2.8rem; margin-bottom: 10px;">Your Dashboard</h2>
-                    <p style="color: var(--text-muted); font-size: 1.1rem;">Manage your contributions and campaigns.</p>
+                    <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 20px;">Manage your contributions and campaigns.</p>
+                    <button id="navBuyCryptoBtn" class="btn-primary" style="background: var(--success-color); border: none;">Buy Crypto (Demo)</button>
                 </div>
 
                 <div class="dashboard-grid">
@@ -184,6 +185,48 @@
                             <!-- Items injected here -->
                         </div>
                     </div>
+                </div>
+            </section>
+
+            <!-- Buy Crypto View (Demo) -->
+            <section id="buyCryptoView" class="view-section" style="display: none;">
+                <div class="view-header">
+                    <button id="backToDashboardBtn" class="btn-text">← Back to Dashboard</button>
+                    <h2 style="font-size: 2.5rem; margin-top: 10px;">Buy Crypto (Demo)</h2>
+                    <p>Simulate purchasing ETH with your local currency.</p>
+                </div>
+
+                <div class="card form-card">
+                    <div style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning-color); padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+                        <p style="color: var(--warning-color); font-weight: bold; margin: 0;">⚠️ This is a demo feature. Real money transactions are not supported.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Currency</label>
+                        <select id="fiatCurrency" style="width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: white; border-radius: 8px; font-size: 1rem;">
+                            <option value="USD" data-rate="3000" data-sym="$">🇺🇸 USD ($) - $3,000/ETH</option>
+                            <option value="EUR" data-rate="2800" data-sym="€">🇪🇺 EUR (€) - €2,800/ETH</option>
+                            <option value="INR" data-rate="250000" data-sym="₹">🇮🇳 INR (₹) - ₹2,50,000/ETH</option>
+                            <option value="GBP" data-rate="2400" data-sym="£">🇬🇧 GBP (£) - £2,400/ETH</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Amount to Spend</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span id="currencySymbolDisplay" style="font-size: 1.5rem; font-weight: bold; color: var(--text-muted);">$</span>
+                            <input type="number" id="fiatAmount" placeholder="0.00" min="0" step="0.01" style="flex: 1; font-size: 1.2rem; padding: 12px;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="background: rgba(59, 130, 246, 0.1); padding: 20px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2); text-align: center;">
+                        <span style="color: var(--text-muted); display: block; margin-bottom: 5px;">You will receive approximately</span>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: var(--primary-color);">
+                            <span id="cryptoAmountDisplay">0.0000</span> <span style="font-size: 1.5rem;">ETH</span>
+                        </div>
+                    </div>
+                    
+                    <button id="btnBuyCrypto" class="btn-primary btn-full" style="padding: 15px; font-size: 1.2rem; background: var(--success-color); border: none;">Buy Now</button>
                 </div>
             </section>
 

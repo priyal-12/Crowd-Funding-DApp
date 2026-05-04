@@ -19,6 +19,12 @@ window.addEventListener('load', async () => {
     document.getElementById('backToHomeBtn1').addEventListener('click', () => showView('homeView'));
     document.getElementById('backToHomeBtn2').addEventListener('click', () => showView('homeView'));
     document.getElementById('navDashboardBtn').addEventListener('click', () => showView('dashboardView'));
+    if(document.getElementById('navBuyCryptoBtn')) {
+        document.getElementById('navBuyCryptoBtn').addEventListener('click', () => { showView('buyCryptoView'); setupBuyCrypto(); });
+    }
+    if(document.getElementById('backToDashboardBtn')) {
+        document.getElementById('backToDashboardBtn').addEventListener('click', () => showView('dashboardView'));
+    }
 
     // Create Campaign
     document.getElementById('addPhaseBtn').addEventListener('click', addPhaseField);
@@ -54,6 +60,8 @@ function showView(viewId) {
     document.getElementById('createCampaignView').style.display = 'none';
     document.getElementById('campaignDetailsView').style.display = 'none';
     document.getElementById('dashboardView').style.display = 'none';
+    if(document.getElementById('buyCryptoView')) document.getElementById('buyCryptoView').style.display = 'none';
+    
     document.getElementById(viewId).style.display = 'block';
 
     if (viewId === 'homeView' && contract) {
@@ -599,4 +607,54 @@ async function showReviewsModal() {
     } catch (e) {
         showToast('Failed to load reviews.', 'error');
     }
+}
+
+// --- BUY CRYPTO (DEMO) ---
+function setupBuyCrypto() {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const select = document.getElementById('fiatCurrency');
+    
+    // Auto detect region based on timezone
+    if (tz.includes('Kolkata') || tz.includes('Asia/Calcutta') || tz.includes('India')) {
+        select.value = 'INR';
+    } else if (tz.includes('Europe') || tz.includes('Paris') || tz.includes('Berlin')) {
+        select.value = 'EUR';
+    } else if (tz.includes('London') || tz.includes('GB')) {
+        select.value = 'GBP';
+    } else {
+        select.value = 'USD';
+    }
+    
+    updateCryptoConversion();
+}
+
+if(document.getElementById('fiatCurrency')) {
+    document.getElementById('fiatCurrency').addEventListener('change', updateCryptoConversion);
+}
+if(document.getElementById('fiatAmount')) {
+    document.getElementById('fiatAmount').addEventListener('input', updateCryptoConversion);
+}
+if(document.getElementById('btnBuyCrypto')) {
+    document.getElementById('btnBuyCrypto').addEventListener('click', () => {
+        const amount = parseFloat(document.getElementById('fiatAmount').value) || 0;
+        if (amount <= 0) {
+            showToast("Please enter a valid amount.", "error");
+            return;
+        }
+        showToast("Demo Only: No real transaction was made. This is a simulation.", "info");
+    });
+}
+
+function updateCryptoConversion() {
+    const select = document.getElementById('fiatCurrency');
+    const option = select.options[select.selectedIndex];
+    const rate = parseFloat(option.getAttribute('data-rate'));
+    const sym = option.getAttribute('data-sym');
+    
+    document.getElementById('currencySymbolDisplay').textContent = sym;
+    
+    const amount = parseFloat(document.getElementById('fiatAmount').value) || 0;
+    const eth = (amount / rate).toFixed(4);
+    
+    document.getElementById('cryptoAmountDisplay').textContent = eth;
 }
