@@ -1,129 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decentralized Crowd-Funding DApp</title>
+    <title>Decentralized Crowd-Funding Platform</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <h1>🚀 Crowd-Funding DApp</h1>
-            <button id="connectBtn" class="btn-primary">Connect MetaMask</button>
-        </header>
-
-        <!-- Wallet Info -->
-        <div id="walletInfo" class="card" style="display: none;">
-            <p><strong>Connected:</strong> <span id="walletAddress"></span></p>
-            <p><strong>Network:</strong> <span id="networkName"></span></p>
-        </div>
-
-        <!-- Campaign Stats -->
-        <div id="campaignStats" class="card" style="display: none;">
-            <h2>Campaign Statistics</h2>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <p class="stat-label">Total Raised</p>
-                    <p class="stat-value" id="totalFunds">0 ETH</p>
-                </div>
-                <div class="stat-item">
-                    <p class="stat-label">Campaign Goal</p>
-                    <p class="stat-value" id="campaignGoal">0 ETH</p>
-                </div>
-                <div class="stat-item">
-                    <p class="stat-label">Contributors</p>
-                    <p class="stat-value" id="totalContributors">0</p>
-                </div>
+    <div class="app-container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="logo" id="homeLogo" style="cursor:pointer;">
+                <span>⚡</span>
+                <h1>CrowdFund Platform</h1>
             </div>
-            
-            <div class="progress-container">
-                <div class="progress-header">
-                    <span>Funding Progress</span>
-                    <span id="progressPercent">0%</span>
+            <div class="nav-actions">
+                <div id="walletInfo" class="wallet-badge" style="display: none;">
+                    <span class="network-dot"></span>
+                    <span id="networkName">Sepolia</span>
+                    <span id="walletAddress" class="address-text">0x...</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
+                <button id="connectBtn" class="btn-primary">Connect Wallet</button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                <div class="spinner"></div>
+                <p id="loadingText">Processing...</p>
+            </div>
+
+            <!-- Home View -->
+            <section id="homeView" class="view-section">
+                <div class="platform-hero">
+                    <h2>Decentralized, Phase-Based Funding.</h2>
+                    <p>Create a campaign, define your phases, and coordinate transparently with your community. No intermediaries, no custodians.</p>
+                    <button id="navCreateCampaignBtn" class="btn-primary btn-large">Create New Campaign</button>
                 </div>
-            </div>
-            
-            <p class="helper-text" style="margin-top: 16px;">
-                <strong>Note:</strong> Funds are released directly to beneficiaries after donor approval.<br>
-                Manager Address: <span id="managerAddress">-</span>
-            </p>
-        </div>
+                
+                <div class="section-header">
+                    <h3>Active Campaigns</h3>
+                </div>
+                <div id="campaignsGrid" class="campaigns-grid">
+                    <!-- Dynamic Campaign Cards injected here -->
+                </div>
+            </section>
 
-        <!-- Contribute Section -->
-        <div id="contributeSection" class="card" style="display: none;">
-            <h2>Make a Contribution</h2>
-            <div class="form-group">
-                <label for="contributeAmount">Amount (ETH)</label>
-                <input type="number" id="contributeAmount" placeholder="0.01" step="0.001" min="0.001">
-            </div>
-            <button id="contributeBtn" class="btn-primary">Contribute</button>
-        </div>
+            <!-- Create Campaign View -->
+            <section id="createCampaignView" class="view-section" style="display: none;">
+                <div class="view-header">
+                    <button id="backToHomeBtn1" class="btn-text">← Back to Platform</button>
+                    <h2>Create a Campaign</h2>
+                    <p>Define the beneficiary (NGO/Recipient) and split your goal into funding phases.</p>
+                </div>
+                
+                <div class="card form-card">
+                    <div class="form-group">
+                        <label>Beneficiary Wallet Address</label>
+                        <input type="text" id="cBeneficiary" placeholder="0x... (Must not be your address)">
+                        <span class="helper-text">Funds will be released directly to this address upon approval.</span>
+                    </div>
 
-        <!-- Create Campaign Section (Manager Only) -->
-        <div id="createCampaignSection" class="card" style="display: none;">
-            <h2>Define Campaign Milestones (Manager Only)</h2>
-            <p style="margin-bottom: 15px; font-size: 0.9em; color: #666;">Define up to 5 milestones. Funds will be released to beneficiaries only after donor approval.</p>
-            
-            <div id="milestoneInputsContainer">
-                <div class="milestone-input-group card" style="background-color: var(--secondary-color);" id="milestoneInput-0">
-                    <h3 style="margin-top: 0;">Milestone 1</h3>
-                    <div class="form-group">
-                        <label>Title</label>
-                        <input type="text" class="m-title" placeholder="e.g., Identify Students">
+                    <div class="phases-builder">
+                        <div class="builder-header">
+                            <h3>Funding Phases</h3>
+                            <button id="addPhaseBtn" class="btn-secondary btn-small">+ Add Phase</button>
+                        </div>
+                        <div id="phaseInputsContainer">
+                            <div class="phase-input-group" id="phaseInput-0">
+                                <span class="phase-number">Phase 1</span>
+                                <input type="number" class="p-amount" placeholder="Target Amount (ETH)" step="0.001" min="0.001">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <input type="text" class="m-desc" placeholder="Details about this phase">
-                    </div>
-                    <div class="form-group">
-                        <label>Amount (ETH)</label>
-                        <input type="number" class="m-amount" placeholder="0.1" step="0.001" min="0.001">
-                    </div>
-                    <div class="form-group">
-                        <label>Beneficiary Address</label>
-                        <input type="text" class="m-beneficiary" placeholder="0x...">
+                    
+                    <button id="submitCampaignBtn" class="btn-primary btn-full" style="margin-top: 20px;">Deploy Campaign</button>
+                </div>
+            </section>
+
+            <!-- Campaign Details View -->
+            <section id="campaignDetailsView" class="view-section" style="display: none;">
+                <div class="view-header">
+                    <button id="backToHomeBtn2" class="btn-text">← Back to Platform</button>
+                    <div class="campaign-title-bar">
+                        <h2 id="cdTitle">Campaign #<span id="cdId">--</span></h2>
                     </div>
                 </div>
-            </div>
-            
-            <button id="addMilestoneBtn" class="btn-secondary" style="margin-bottom: 20px; background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color);">+ Add Another Milestone</button>
-            <div style="margin-bottom: 15px;"></div>
-            <button id="createCampaignBtn" class="btn-primary">Create Campaign & Lock Setup</button>
-        </div>
 
-        <!-- Submit Proof Modal (Manager Only) -->
-        <div id="submitProofSection" class="card" style="display: none; border-left: 4px solid var(--primary-color);">
-            <h2>Submit Proof for Current Milestone</h2>
-            <p>Milestone ID: <span id="proofMilestoneIdText"></span></p>
-            <div class="form-group">
-                <label>Proof Document/Image Link (IPFS hash or URL)</label>
-                <input type="text" id="proofInput" placeholder="ipfs://... or https://...">
-            </div>
-            <button id="submitProofBtn" class="btn-primary">Submit for Review</button>
-            <button id="cancelProofBtn" class="btn-secondary" style="margin-left: 10px; background: #666;">Cancel</button>
-        </div>
+                <div class="campaign-layout">
+                    <!-- Main details column -->
+                    <div class="campaign-main">
+                        <div class="card stat-card">
+                            <div class="stat-row">
+                                <div class="stat-col">
+                                    <span class="stat-label">Total Goal</span>
+                                    <span class="stat-val" id="cdTotalGoal">0 ETH</span>
+                                </div>
+                                <div class="stat-col">
+                                    <span class="stat-label">Total Raised</span>
+                                    <span class="stat-val" id="cdTotalRaised">0 ETH</span>
+                                </div>
+                                <div class="stat-col">
+                                    <span class="stat-label">Creator</span>
+                                    <span class="stat-val address-mono" id="cdCreator" style="display:block; margin-bottom:5px;">0x...</span>
+                                    <div class="creator-trust" style="display:flex; align-items:center; gap:8px;">
+                                        <span class="trust-stars" id="cdCreatorStars">No ratings yet</span>
+                                        <button id="btnViewReviews" class="btn-text" style="margin:0; font-size:0.8rem; text-decoration:underline;">View Reviews</button>
+                                    </div>
+                                </div>
+                                <div class="stat-col">
+                                    <span class="stat-label">Beneficiary</span>
+                                    <span class="stat-val address-mono" id="cdBeneficiary">0x...</span>
+                                </div>
+                            </div>
+                        </div>
 
-        <!-- Milestones List -->
-        <div id="milestonesSection" class="card" style="display: none;">
-            <h2>Campaign Milestones Journey</h2>
-            <div id="milestonesList"></div>
-        </div>
+                        <!-- Phase Tracker -->
+                        <div class="card">
+                            <h3>Phase Lifecycle Overview</h3>
+                            <div id="phaseTracker" class="phase-tracker">
+                                <!-- Tracker items injected here -->
+                            </div>
+                        </div>
 
-        <!-- Status Messages -->
-        <div id="statusMessage" class="status-message" style="display: none;"></div>
+                        <!-- Current Phase Action Area -->
+                        <div class="card action-card" id="currentPhaseCard">
+                            <div class="action-header">
+                                <h3>Current Phase: <span id="cpNumber">--</span></h3>
+                                <span class="status-badge" id="cpStatusBadge">Loading...</span>
+                            </div>
+                            
+                            <div class="phase-progress-container">
+                                <div class="progress-labels">
+                                    <span id="cpRaisedText">0 ETH</span>
+                                    <span id="cpTargetText">of 0 ETH target</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="cpProgressFill" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <div id="phasePlanDetails" class="plan-details-box" style="display: none;">
+                                <h4>Creator's Phase Plan</h4>
+                                <p id="cpPlanText">No plan submitted yet.</p>
+                            </div>
+
+                            <div id="phaseProofDetails" class="plan-details-box" style="display: none;">
+                                <h4>Proof of Work</h4>
+                                <a href="#" id="cpProofLink" target="_blank" class="proof-link">View Proof Document</a>
+                            </div>
+
+                            <div id="votingStats" class="voting-stats" style="display: none;">
+                                <h4>Voting Results (1 Contributor = 1 Vote)</h4>
+                                <div class="vote-bars">
+                                    <div class="vote-bar-row">
+                                        <span>Yes (<span id="cpYesVotes">0</span>)</span>
+                                    </div>
+                                    <div class="vote-bar-row">
+                                        <span>No (<span id="cpNoVotes">0</span>)</span>
+                                    </div>
+                                    <p class="vote-total">Total Voters: <span id="cpTotalVoters">0</span></p>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Action Forms -->
+                            <div id="actionForms" class="action-forms">
+                                <!-- Funding Form -->
+                                <div id="formContribute" class="dynamic-form" style="display: none;">
+                                    <div class="form-group" style="display:flex; gap:10px;">
+                                        <input type="number" id="contributeAmount" placeholder="Amount (ETH)" step="0.001" min="0.001" style="flex:1;">
+                                        <button id="btnContribute" class="btn-primary">Contribute</button>
+                                    </div>
+                                </div>
+
+                                <!-- Submit Plan Form (Creator) -->
+                                <div id="formSubmitPlan" class="dynamic-form" style="display: none;">
+                                    <div class="form-group">
+                                        <textarea id="planDetailsInput" placeholder="Enter objectives, timeline, deliverables for this phase..." rows="3"></textarea>
+                                    </div>
+                                    <button id="btnSubmitPlan" class="btn-primary">Submit Plan for Review</button>
+                                </div>
+
+                                <!-- Voting Form -->
+                                <div id="formVote" class="dynamic-form" style="display: none;">
+                                    <div class="btn-group" style="display:flex; gap:10px;">
+                                        <button id="btnVoteYes" class="btn-approve" style="flex:1;">Vote Yes 👍</button>
+                                        <button id="btnVoteNo" class="btn-reject" style="flex:1;">Vote No 👎</button>
+                                    </div>
+                                </div>
+
+                                <!-- Finalize Voting Form (Creator/Admin) -->
+                                <div id="formFinalize" class="dynamic-form" style="display: none;">
+                                    <button id="btnFinalizeVoting" class="btn-primary btn-full">Finalize Voting</button>
+                                </div>
+
+                                <!-- Release Funds Form (Creator) -->
+                                <div id="formReleaseFunds" class="dynamic-form" style="display: none;">
+                                    <button id="btnReleaseFunds" class="btn-primary btn-full">Release Funds to Beneficiary</button>
+                                </div>
+
+                                <!-- Submit Proof Form (Creator) -->
+                                <div id="formSubmitProof" class="dynamic-form" style="display: none;">
+                                    <div class="form-group" style="display:flex; gap:10px;">
+                                        <input type="text" id="proofUrlInput" placeholder="IPFS Link or URL" style="flex:1;">
+                                        <button id="btnSubmitProof" class="btn-primary">Submit Proof</button>
+                                    </div>
+                                </div>
+
+                                <!-- Claim Refund Form -->
+                                <div id="formRefund" class="dynamic-form" style="display: none;">
+                                    <div style="padding:15px; background:rgba(239, 68, 68, 0.1); border-radius:8px; border:1px solid rgba(239, 68, 68, 0.2);">
+                                        <p class="warning-text" style="color:var(--danger-color); margin-bottom:10px;">Plan was rejected. You can claim a refund for your contribution to this phase.</p>
+                                        <button id="btnClaimRefund" class="btn-reject">Claim My Refund</button>
+                                    </div>
+                                </div>
+
+                                <!-- Reset Phase Form (Creator) -->
+                                <div id="formResetPhase" class="dynamic-form" style="display: none;">
+                                    <button id="btnResetPhase" class="btn-secondary btn-full">Reset Phase to Funding</button>
+                                </div>
+
+                                <!-- Rate Creator Form -->
+                                <div id="formRateCreator" class="dynamic-form" style="display: none; border-top: 1px solid var(--card-border); padding-top: 20px; margin-top: 20px;">
+                                    <h4 style="margin-bottom:10px;">Rate the Creator</h4>
+                                    <div class="form-group" style="margin-bottom:10px;">
+                                        <label>Rating (1-5)</label>
+                                        <select id="creatorRatingInput" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.2); border: 1px solid #374151; color: white; border-radius: 8px;">
+                                            <option value="5">⭐⭐⭐⭐⭐ (5) Excellent</option>
+                                            <option value="4">⭐⭐⭐⭐ (4) Good</option>
+                                            <option value="3">⭐⭐⭐ (3) Average</option>
+                                            <option value="2">⭐⭐ (2) Poor</option>
+                                            <option value="1">⭐ (1) Terrible</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <textarea id="creatorFeedbackInput" placeholder="Optional feedback about the creator..." rows="2"></textarea>
+                                    </div>
+                                    <button id="btnRateCreator" class="btn-primary btn-full">Submit Rating</button>
+                                </div>
+
+                                <!-- Message Box -->
+                                <div id="actionMessage" class="action-message" style="display: none; padding:10px; margin-top:10px; border-radius:4px; text-align:center;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
 
-    <!-- Scripts -->
+    <!-- Status Toast -->
+    <div id="toastMessage" class="toast" style="display: none;"></div>
+
+    <!-- Reviews Modal -->
+    <div id="reviewsModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content card">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--card-border); padding-bottom:15px; margin-bottom:15px;">
+                <h3>Creator Reviews</h3>
+                <button id="closeReviewsBtn" class="btn-text" style="margin:0; font-size:1.2rem;">✕</button>
+            </div>
+            <div id="reviewsList" class="reviews-list" style="max-height: 400px; overflow-y: auto;">
+                <!-- Reviews injected here -->
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
     <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
-
 </html>

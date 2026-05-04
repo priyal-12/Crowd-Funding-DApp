@@ -1,369 +1,453 @@
-// Global variables
+// Global Variables
 let web3;
 let contract;
 let currentAccount;
-let isManager = false;
-let milestoneCountInput = 1;
-let currentProofId = null;
+let currentCampaignId = null;
+let isCreator = false;
 
-// Initialize on page load
+const PhaseStatusMap = ["Funding", "Plan Pending", "Voting", "Approved", "Work In Progress", "Completed", "Rejected"];
+
 window.addEventListener('load', async () => {
-    // Check if MetaMask is installed
     if (typeof window.ethereum !== 'undefined') {
-        console.log('MetaMask is installed!');
-    } else {
-        showStatus('Please install MetaMask to use this dApp', 'error');
+        console.log('MetaMask installed');
     }
 
-    // Setup event listeners
+    // Nav
     document.getElementById('connectBtn').addEventListener('click', connectWallet);
-    document.getElementById('contributeBtn').addEventListener('click', contribute);
-    document.getElementById('addMilestoneBtn').addEventListener('click', addMilestoneField);
-    document.getElementById('createCampaignBtn').addEventListener('click', createCampaign);
-    document.getElementById('submitProofBtn').addEventListener('click', submitProof);
-    document.getElementById('cancelProofBtn').addEventListener('click', () => {
-        document.getElementById('submitProofSection').style.display = 'none';
-    });
+    document.getElementById('homeLogo').addEventListener('click', () => showView('homeView'));
+    document.getElementById('navCreateCampaignBtn').addEventListener('click', () => showView('createCampaignView'));
+    document.getElementById('backToHomeBtn1').addEventListener('click', () => showView('homeView'));
+    document.getElementById('backToHomeBtn2').addEventListener('click', () => showView('homeView'));
+
+    // Create Campaign
+    document.getElementById('addPhaseBtn').addEventListener('click', addPhaseField);
+    document.getElementById('submitCampaignBtn').addEventListener('click', createCampaign);
+
+    // Actions
+    document.getElementById('btnContribute').addEventListener('click', contribute);
+    document.getElementById('btnSubmitPlan').addEventListener('click', submitPlan);
+    document.getElementById('btnVoteYes').addEventListener('click', () => vote(true));
+    document.getElementById('btnVoteNo').addEventListener('click', () => vote(false));
+    document.getElementById('btnFinalizeVoting').addEventListener('click', finalizeVoting);
+    document.getElementById('btnReleaseFunds').addEventListener('click', releaseFunds);
+    document.getElementById('btnSubmitProof').addEventListener('click', submitProof);
+    document.getElementById('btnClaimRefund').addEventListener('click', claimRefund);
+    document.getElementById('btnResetPhase').addEventListener('click', resetPhase);
+    document.getElementById('btnRateCreator').addEventListener('click', rateCreator);
+    document.getElementById('btnViewReviews').addEventListener('click', showReviewsModal);
+    document.getElementById('closeReviewsBtn').addEventListener('click', () => { document.getElementById('reviewsModal').style.display = 'none'; });
+
+    showView('homeView');
 });
 
-/**
- * Connect to MetaMask wallet
- */
+function showToast(msg, type = "info") {
+    const toast = document.getElementById('toastMessage');
+    toast.textContent = msg;
+    toast.className = `toast toast-${type}`;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 5000);
+}
+
+function showView(viewId) {
+    document.getElementById('homeView').style.display = 'none';
+    document.getElementById('createCampaignView').style.display = 'none';
+    document.getElementById('campaignDetailsView').style.display = 'none';
+    document.getElementById(viewId).style.display = 'block';
+
+    if (viewId === 'homeView' && contract) {
+        loadPlatformData();
+    }
+}
+
+function showLoading(show, text="Processing...") {
+    document.getElementById('loadingText').textContent = text;
+    document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+}
+
 async function connectWallet() {
     try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         currentAccount = accounts[0];
-
         web3 = new Web3(window.ethereum);
 
         const chainId = await web3.eth.getChainId();
-        if (chainId !== 11155111) { // Sepolia
-            showStatus('Wrong network detected. Please switch to Sepolia.', 'error');
-            return;
+        if (chainId !== 11155111) {
+            showToast('Please switch to Sepolia Testnet.', 'error');
         }
 
         contract = new web3.eth.Contract(CONFIG.contractABI, CONFIG.contractAddress);
 
-        // Update UI
         document.getElementById('walletAddress').textContent = currentAccount.substring(0, 6) + '...' + currentAccount.substring(38);
-        document.getElementById('networkName').textContent = CONFIG.sepoliaNetworkName;
-        document.getElementById('walletInfo').style.display = 'block';
-        document.getElementById('campaignStats').style.display = 'block';
-        document.getElementById('contributeSection').style.display = 'block';
+        document.getElementById('walletInfo').style.display = 'inline-flex';
+        document.getElementById('connectBtn').style.display = 'none';
 
-        await loadCampaignData();
-
-        const manager = await contract.methods.manager().call();
-        isManager = manager.toLowerCase() === currentAccount.toLowerCase();
+        showToast('Wallet connected!', 'success');
         
-        const campaignCreated = await contract.methods.campaignCreated().call();
+        loadPlatformData();
 
-        if (isManager && !campaignCreated) {
-            document.getElementById('createCampaignSection').style.display = 'block';
-        }
-        
-        if (campaignCreated) {
-            document.getElementById('milestonesSection').style.display = 'block';
-            await loadMilestones();
-        }
-
-        showStatus('Connected successfully!', 'success');
-
-        window.ethereum.on('accountsChanged', (accounts) => {
-            if (accounts.length === 0) location.reload();
-            else location.reload();
-        });
+        window.ethereum.on('accountsChanged', () => location.reload());
         window.ethereum.on('chainChanged', () => location.reload());
-
-    } catch (error) {
-        console.error(error);
-        showStatus('Failed to connect wallet: ' + error.message, 'error');
+    } catch (e) {
+        showToast('Failed to connect: ' + e.message, 'error');
     }
 }
 
-/**
- * Load campaign statistics
- */
-async function loadCampaignData() {
+// --- HOME VIEW ---
+async function loadPlatformData() {
+    if (!contract) return;
     try {
-        const balance = await contract.methods.getBalance().call();
-        const totalContributors = await contract.methods.totalContributors().call();
-        const manager = await contract.methods.manager().call();
+        const count = await contract.methods.campaignCount().call();
+        const grid = document.getElementById('campaignsGrid');
+        grid.innerHTML = '';
 
-        document.getElementById('totalFunds').textContent = web3.utils.fromWei(balance, 'ether') + ' ETH';
-        document.getElementById('totalContributors').textContent = totalContributors;
-        document.getElementById('managerAddress').textContent = manager.substring(0, 6) + '...' + manager.substring(38);
-    } catch (error) {
-        console.error(error);
-    }
-}
-
-/**
- * Contribute ETH to the campaign
- */
-async function contribute() {
-    try {
-        const amount = document.getElementById('contributeAmount').value;
-        if (!amount || amount <= 0) return showStatus('Please enter a valid amount', 'error');
-
-        const amountWei = web3.utils.toWei(amount, 'ether');
-        showStatus('Processing transaction...', 'info');
-
-        await contract.methods.contribute().send({ from: currentAccount, value: amountWei });
-
-        showStatus('Contribution successful!', 'success');
-        document.getElementById('contributeAmount').value = '';
-        await loadCampaignData();
-    } catch (error) {
-        showStatus('Contribution failed: ' + error.message, 'error');
-    }
-}
-
-function addMilestoneField() {
-    if (milestoneCountInput >= 5) {
-        showStatus('Maximum 5 milestones allowed.', 'error');
-        return;
-    }
-    
-    const container = document.getElementById('milestoneInputsContainer');
-    const newGroupId = `milestoneInput-${milestoneCountInput}`;
-    
-    const div = document.createElement('div');
-    div.className = 'milestone-input-group card';
-    div.style.backgroundColor = 'var(--secondary-color)';
-    div.id = newGroupId;
-    div.innerHTML = `
-        <h3 style="margin-top: 0;">Milestone ${milestoneCountInput + 1}</h3>
-        <div class="form-group">
-            <label>Title</label>
-            <input type="text" class="m-title" placeholder="e.g., Output Delivery">
-        </div>
-        <div class="form-group">
-            <label>Description</label>
-            <input type="text" class="m-desc" placeholder="Details">
-        </div>
-        <div class="form-group">
-            <label>Amount (ETH)</label>
-            <input type="number" class="m-amount" placeholder="0.1" step="0.001" min="0.001">
-        </div>
-        <div class="form-group">
-            <label>Beneficiary Address</label>
-            <input type="text" class="m-beneficiary" placeholder="0x...">
-        </div>
-    `;
-    container.appendChild(div);
-    milestoneCountInput++;
-}
-
-async function createCampaign() {
-    try {
-        const titles = [];
-        const descriptions = [];
-        const amounts = [];
-        const beneficiaries = [];
-        
-        let valid = true;
-        
-        for (let i = 0; i < milestoneCountInput; i++) {
-            const group = document.getElementById(`milestoneInput-${i}`);
-            const title = group.querySelector('.m-title').value;
-            const desc = group.querySelector('.m-desc').value;
-            const amount = group.querySelector('.m-amount').value;
-            const bAddress = group.querySelector('.m-beneficiary').value;
-            
-            if (!title || !desc || !amount || !bAddress) {
-                valid = false;
-                break;
-            }
-            
-            titles.push(title);
-            descriptions.push(desc);
-            amounts.push(web3.utils.toWei(amount, 'ether'));
-            beneficiaries.push(bAddress);
-        }
-        
-        if (!valid) {
-            showStatus('Please fill all fields for all milestones.', 'error');
+        if (count == 0) {
+            grid.innerHTML = '<p style="color:#888;">No campaigns found on the platform yet.</p>';
             return;
         }
 
-        showStatus('Creating Campaign...', 'info');
-
-        await contract.methods.createCampaign(titles, descriptions, amounts, beneficiaries).send({
-            from: currentAccount
-        });
-
-        showStatus('Campaign created successfully!', 'success');
-        document.getElementById('createCampaignSection').style.display = 'none';
-        
-        // Reload page to show milestones
-        location.reload();
-        
-    } catch (error) {
-        showStatus('Failed to create campaign: ' + error.message, 'error');
+        for (let i = 0; i < count; i++) {
+            const camp = await contract.methods.campaigns(i).call();
+            const pIdx = camp.currentPhaseIndex;
+            let statusText = "Completed";
+            
+            if (pIdx < camp.phasesCount) {
+                const phase = await contract.methods.campaignPhases(i, pIdx).call();
+                statusText = PhaseStatusMap[phase.status];
+            }
+            
+            const totalGoal = web3.utils.fromWei(camp.totalGoal, 'ether');
+            const totalRaised = web3.utils.fromWei(camp.totalFundsRaised, 'ether');
+            
+            const card = document.createElement('div');
+            card.className = 'card campaign-card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h4>Campaign #${i}</h4>
+                    <span class="status-badge" style="font-size:0.75em;">${statusText}</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Goal:</strong> ${totalGoal} ETH</p>
+                    <p><strong>Raised:</strong> ${totalRaised} ETH</p>
+                    <p><strong>Phases:</strong> ${pIdx >= camp.phasesCount ? camp.phasesCount : parseInt(pIdx)+1} / ${camp.phasesCount}</p>
+                </div>
+                <button class="btn-primary btn-full" style="margin-top:15px;" onclick="viewCampaignDetails(${i})">View Details</button>
+            `;
+            grid.appendChild(card);
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Error loading platform data.', 'error');
     }
 }
 
-const statusTextMap = ["Pending", "Under Review", "Approved", "Rejected", "Released"];
+// --- CREATE CAMPAIGN ---
+function addPhaseField() {
+    const container = document.getElementById('phaseInputsContainer');
+    const idx = container.children.length;
+    if (idx >= 10) return showToast('Maximum 10 phases allowed.', 'error');
 
-async function loadMilestones() {
+    const div = document.createElement('div');
+    div.className = 'phase-input-group';
+    div.id = `phaseInput-${idx}`;
+    div.innerHTML = `
+        <span class="phase-number">Phase ${idx + 1}</span>
+        <input type="number" class="p-amount" placeholder="Target Amount (ETH)" step="0.001" min="0.001">
+    `;
+    container.appendChild(div);
+}
+
+async function createCampaign() {
+    if (!contract || !currentAccount) return showToast('Connect wallet first.', 'error');
+    
+    const ben = document.getElementById('cBeneficiary').value;
+    if (!ben || ben.length !== 42) return showToast('Invalid beneficiary address.', 'error');
+
+    const container = document.getElementById('phaseInputsContainer');
+    const targets = [];
+    for (let i = 0; i < container.children.length; i++) {
+        const val = container.children[i].querySelector('.p-amount').value;
+        if (!val || val <= 0) return showToast(`Invalid amount in Phase ${i+1}.`, 'error');
+        targets.push(web3.utils.toWei(val, 'ether'));
+    }
+
     try {
-        const count = await contract.methods.getMilestonesCount().call();
-        const currentMilestoneIndex = await contract.methods.currentMilestoneIndex().call();
-        const mList = document.getElementById('milestonesList');
-        mList.innerHTML = '';
-        
-        let campaignGoalWei = web3.utils.toBN('0');
+        showLoading(true, "Deploying Campaign...");
+        await contract.methods.createCampaign(ben, targets).send({ from: currentAccount });
+        showLoading(false);
+        showToast('Campaign created successfully!', 'success');
+        showView('homeView');
+    } catch (e) {
+        showLoading(false);
+        showToast('Error: ' + e.message, 'error');
+    }
+}
 
-        for (let i = 0; i < count; i++) {
-            const m = await contract.methods.getMilestone(i).call();
-            const hasVoted = await contract.methods.hasVoted(i, currentAccount).call();
-            
-            campaignGoalWei = campaignGoalWei.add(web3.utils.toBN(m.amount));
-            
-            const reqDiv = document.createElement('div');
-            reqDiv.className = 'request-item';
+// --- CAMPAIGN DETAILS ---
+async function viewCampaignDetails(id) {
+    if (!contract || !currentAccount) return showToast('Connect wallet first.', 'error');
+    currentCampaignId = id;
+    showView('campaignDetailsView');
+    await loadCampaignDetails(id);
+}
 
-            let sClass = 'status-pending';
-            if (m.status == 1) sClass = 'status-review'; // UnderReview
-            else if (m.status == 2) sClass = 'status-completed'; // Approved
-            else if (m.status == 3) sClass = 'status-reject'; // Rejected
-            else if (m.status == 4) sClass = 'status-completed'; // Released
-            
-            const isCurrent = i == currentMilestoneIndex;
-            let currentBadge = isCurrent ? '<span style="color:var(--primary-color); font-weight:bold; margin-left:10px;">[Active]</span>' : '';
+async function loadCampaignDetails(id) {
+    try {
+        const camp = await contract.methods.campaigns(id).call();
+        isCreator = (camp.creator.toLowerCase() === currentAccount.toLowerCase());
 
-            reqDiv.innerHTML = `
-                <div class="request-header">
-                    <div class="request-title">${m.title} ${currentBadge}</div>
-                    <span class="status-badge ${sClass}">${statusTextMap[m.status]}</span>
-                </div>
-                <div class="request-details">
-                    <p><strong>Description:</strong> ${m.description}</p>
-                    <p><strong>Amount Allocated:</strong> ${web3.utils.fromWei(m.amount, 'ether')} ETH</p>
-                    <p><strong>Beneficiary:</strong> <span style="font-family: monospace; font-size: 0.9em; background: #374151; padding: 2px 6px; border-radius: 4px;">${m.beneficiary}</span></p>
-                    ${m.proof ? `<p style="margin-top: 10px;"><strong>Proof Submitted:</strong> <a href="${m.proof}" target="_blank" class="proof-link">View Proof</a></p>` : ''}
-                    <div class="voting-results">
-                        <p><strong>Voting Power (Total ETH):</strong></p>
-                        <p>👍 Yes votes: ${web3.utils.fromWei(m.yesVotes, 'ether')} ETH &nbsp;|&nbsp; 👎 No votes: ${web3.utils.fromWei(m.noVotes, 'ether')} ETH</p>
-                    </div>
-                </div>
-                <div class="request-actions" id="m-actions-${i}"></div>
+        document.getElementById('cdId').textContent = id;
+        document.getElementById('cdCreator').textContent = camp.creator.substring(0,6)+'...'+camp.creator.substring(38);
+        document.getElementById('cdBeneficiary').textContent = camp.beneficiary.substring(0,6)+'...'+camp.beneficiary.substring(38);
+        document.getElementById('cdTotalGoal').textContent = web3.utils.fromWei(camp.totalGoal, 'ether') + ' ETH';
+        document.getElementById('cdTotalRaised').textContent = web3.utils.fromWei(camp.totalFundsRaised, 'ether') + ' ETH';
+
+        // Load Creator Trust Score
+        const points = parseInt(await contract.methods.creatorTotalRatingPoints(camp.creator).call());
+        const count = parseInt(await contract.methods.creatorRatingCount(camp.creator).call());
+        const starsEl = document.getElementById('cdCreatorStars');
+        if (count === 0) {
+            starsEl.textContent = "No ratings yet";
+        } else {
+            const avg = (points / count).toFixed(1);
+            starsEl.textContent = `⭐ ${avg} (${count} reviews)`;
+        }
+
+        const pIdx = parseInt(camp.currentPhaseIndex);
+        const pCount = parseInt(camp.phasesCount);
+
+        // Build Phase Tracker
+        const tracker = document.getElementById('phaseTracker');
+        tracker.innerHTML = '';
+        for (let i = 0; i < pCount; i++) {
+            const phase = await contract.methods.campaignPhases(id, i).call();
+            const div = document.createElement('div');
+            
+            let pState = "Upcoming";
+            if (i < pIdx) pState = "Completed";
+            else if (i === pIdx) pState = "Active";
+
+            div.className = `tracker-item ${pState.toLowerCase()}`;
+            div.innerHTML = `
+                <div class="tracker-circle">${i+1}</div>
+                <div class="tracker-text">Phase ${i+1}<br><small>${web3.utils.fromWei(phase.targetAmount, 'ether')} ETH</small></div>
             `;
+            tracker.appendChild(div);
+        }
+
+        // Current Phase logic
+        const card = document.getElementById('currentPhaseCard');
+        if (pIdx >= pCount) {
+            document.getElementById('cpNumber').textContent = "All Completed";
+            document.getElementById('cpStatusBadge').textContent = "Campaign Finished";
+            card.style.opacity = '0.7';
+            hideAllForms();
+            return;
+        }
+
+        card.style.opacity = '1';
+        document.getElementById('cpNumber').textContent = `${pIdx + 1} of ${pCount}`;
+        
+        const phase = await contract.methods.campaignPhases(id, pIdx).call();
+        const status = parseInt(phase.status);
+        document.getElementById('cpStatusBadge').textContent = PhaseStatusMap[status];
+
+        const targetEth = parseFloat(web3.utils.fromWei(phase.targetAmount, 'ether'));
+        const raisedEth = parseFloat(web3.utils.fromWei(phase.totalRaised, 'ether'));
+        document.getElementById('cpTargetText').textContent = `of ${targetEth} ETH target`;
+        document.getElementById('cpRaisedText').textContent = `${raisedEth} ETH raised`;
+        
+        const pct = (raisedEth / targetEth) * 100;
+        document.getElementById('cpProgressFill').style.width = `${pct}%`;
+
+        // Reset details visibility
+        document.getElementById('phasePlanDetails').style.display = 'none';
+        document.getElementById('phaseProofDetails').style.display = 'none';
+        document.getElementById('votingStats').style.display = 'none';
+        hideAllForms();
+
+        // Show specific details based on state
+        if (status >= 2 && status !== 6) { // Plan submitted
+            document.getElementById('phasePlanDetails').style.display = 'block';
+            document.getElementById('cpPlanText').textContent = phase.planDetails;
+        }
+
+        if (status === 2 || status === 3 || status === 6) { // Voting stats
+            document.getElementById('votingStats').style.display = 'block';
+            document.getElementById('cpYesVotes').textContent = phase.yesVotes;
+            document.getElementById('cpNoVotes').textContent = phase.noVotes;
+            document.getElementById('cpTotalVoters').textContent = phase.totalVoters;
+        }
+
+        if (status === 5) { // Completed proof
+            document.getElementById('phaseProofDetails').style.display = 'block';
+            document.getElementById('cpProofLink').href = phase.proofOfWork;
+        }
+
+        // Show Forms
+        if (status === 0) { // Funding
+            document.getElementById('formContribute').style.display = 'block';
+        } 
+        else if (status === 1) { // PlanPending
+            if (isCreator) document.getElementById('formSubmitPlan').style.display = 'block';
+            else showActionMsg("Waiting for creator to submit phase plan.");
+        }
+        else if (status === 2) { // Voting
+            const myAttempt = await contract.methods.phaseAttempts(id, pIdx).call();
+            const hasVoted = await contract.methods.hasVoted(id, pIdx, myAttempt, currentAccount).call();
+            const myContribution = await contract.methods.phaseContributions(id, pIdx, currentAccount).call();
             
-            mList.appendChild(reqDiv);
-            const actionsDiv = document.getElementById(`m-actions-${i}`);
+            if (myContribution > 0 && !hasVoted) {
+                document.getElementById('formVote').style.display = 'block';
+            } else if (hasVoted) {
+                showActionMsg("You have cast your vote.");
+            } else {
+                showActionMsg("Only contributors to this phase can vote.");
+            }
 
-            if (isCurrent) {
-                if (isManager && (m.status == 0 || m.status == 3)) { 
-                    const prfBtn = document.createElement('button');
-                    prfBtn.className = 'btn-primary';
-                    prfBtn.textContent = 'Submit Proof';
-                    prfBtn.onclick = () => {
-                        currentProofId = i;
-                        document.getElementById('proofMilestoneIdText').textContent = i + ' - ' + m.title;
-                        document.getElementById('submitProofSection').style.display = 'block';
-                    };
-                    actionsDiv.appendChild(prfBtn);
-                }
-
-                if (m.status == 1) { 
-                    if (!hasVoted) {
-                        const vYesBtn = document.createElement('button');
-                        vYesBtn.className = 'btn-approve';
-                        vYesBtn.textContent = 'Approve';
-                        vYesBtn.onclick = () => voteMilestone(i, true);
-                        
-                        const vNoBtn = document.createElement('button');
-                        vNoBtn.className = 'btn-reject';
-                        vNoBtn.textContent = 'Reject';
-                        vNoBtn.onclick = () => voteMilestone(i, false);
-                        
-                        actionsDiv.appendChild(vYesBtn);
-                        actionsDiv.appendChild(vNoBtn);
-                    } else {
-                        actionsDiv.innerHTML += '<span style="opacity: 0.7; font-weight: 500;">You have voted on this milestone.</span>';
-                    }
-                    
-                    if (isManager) {
-                        const relBtn = document.createElement('button');
-                        relBtn.className = 'btn-finalize';
-                        relBtn.textContent = 'Finalize & Release Funds';
-                        relBtn.onclick = () => releaseFunds(i);
-                        actionsDiv.appendChild(relBtn);
-                    }
-                }
-            } else if (m.status == 4) {
-                actionsDiv.innerHTML += '<span style="color: var(--success-color); font-weight: 600;">Funds Released Successfully</span>';
+            if (isCreator) {
+                document.getElementById('formFinalize').style.display = 'block';
             }
         }
-        
-        // Update Progress Bar & Goal globally
-        const goalEth = web3.utils.fromWei(campaignGoalWei, 'ether');
-        const goalEl = document.getElementById('campaignGoal');
-        if (goalEl) goalEl.textContent = goalEth + ' ETH';
-        
-        const totalFunds = await contract.methods.totalFunds().call();
-        let percent = 0;
-        if (!campaignGoalWei.isZero()) {
-            percent = (parseFloat(web3.utils.fromWei(totalFunds, 'ether')) / parseFloat(goalEth)) * 100;
-            if (percent > 100) percent = 100;
+        else if (status === 3) { // Approved
+            if (isCreator) document.getElementById('formReleaseFunds').style.display = 'block';
+            else showActionMsg("Plan approved. Waiting for creator to release funds to beneficiary.");
         }
-        const pctText = percent.toFixed(1) + '%';
-        const percentEl = document.getElementById('progressPercent');
-        const fillEl = document.getElementById('progressFill');
-        if (percentEl) percentEl.textContent = pctText;
-        if (fillEl) fillEl.style.width = pctText;
+        else if (status === 4) { // WorkInProgress
+            if (isCreator) document.getElementById('formSubmitProof').style.display = 'block';
+            else showActionMsg("Funds released. Work in progress. Waiting for proof from creator.");
+        }
+        else if (status === 6) { // Rejected
+            const myContribution = await contract.methods.phaseContributions(id, pIdx, currentAccount).call();
+            if (myContribution > 0) {
+                document.getElementById('formRefund').style.display = 'block';
+            }
+            if (isCreator) {
+                document.getElementById('formResetPhase').style.display = 'block';
+            }
+        }
 
-    } catch (error) {
-        console.error('Error loading milestones:', error);
+        // Rate Creator Form Logic
+        let hasContributedToAnyPhase = false;
+        for (let i = 0; i < pCount; i++) {
+            const myContribution = await contract.methods.phaseContributions(id, i, currentAccount).call();
+            if (myContribution > 0) {
+                hasContributedToAnyPhase = true;
+                break;
+            }
+        }
+
+        const hasRated = await contract.methods.hasRatedCampaign(id, currentAccount).call();
+        if (hasContributedToAnyPhase && !hasRated && !isCreator) {
+            document.getElementById('formRateCreator').style.display = 'block';
+        }
+
+    } catch (e) {
+        console.error(e);
+        showToast('Failed to load campaign details.', 'error');
     }
+}
+
+function hideAllForms() {
+    const forms = document.querySelectorAll('.dynamic-form');
+    forms.forEach(f => f.style.display = 'none');
+    document.getElementById('actionMessage').style.display = 'none';
+}
+
+function showActionMsg(msg) {
+    const el = document.getElementById('actionMessage');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+
+// --- CONTRACT ACTIONS ---
+async function executeAction(actionName, promise) {
+    try {
+        showLoading(true, `${actionName}...`);
+        await promise;
+        showToast(`${actionName} successful!`, 'success');
+        await loadCampaignDetails(currentCampaignId);
+    } catch (e) {
+        showToast(`Failed: ${e.message}`, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function contribute() {
+    const amount = document.getElementById('contributeAmount').value;
+    if (!amount || amount <= 0) return showToast('Invalid amount', 'error');
+    const val = web3.utils.toWei(amount, 'ether');
+    await executeAction('Contribution', contract.methods.contribute(currentCampaignId).send({ from: currentAccount, value: val }));
+}
+
+async function submitPlan() {
+    const text = document.getElementById('planDetailsInput').value;
+    if (!text) return showToast('Plan details required', 'error');
+    await executeAction('Submit Plan', contract.methods.submitPlan(currentCampaignId, text).send({ from: currentAccount }));
+}
+
+async function vote(support) {
+    await executeAction('Voting', contract.methods.vote(currentCampaignId, support).send({ from: currentAccount }));
+}
+
+async function finalizeVoting() {
+    await executeAction('Finalize Voting', contract.methods.finalizeVoting(currentCampaignId).send({ from: currentAccount }));
+}
+
+async function releaseFunds() {
+    await executeAction('Release Funds', contract.methods.releaseFunds(currentCampaignId).send({ from: currentAccount }));
 }
 
 async function submitProof() {
+    const url = document.getElementById('proofUrlInput').value;
+    if (!url) return showToast('Proof URL required', 'error');
+    await executeAction('Submit Proof', contract.methods.submitProof(currentCampaignId, url).send({ from: currentAccount }));
+}
+
+async function claimRefund() {
+    await executeAction('Claim Refund', contract.methods.claimRefund(currentCampaignId).send({ from: currentAccount }));
+}
+
+async function resetPhase() {
+    await executeAction('Reset Phase', contract.methods.resetPhase(currentCampaignId).send({ from: currentAccount }));
+}
+
+async function rateCreator() {
+    const rating = document.getElementById('creatorRatingInput').value;
+    const feedback = document.getElementById('creatorFeedbackInput').value;
+    await executeAction('Submit Rating', contract.methods.rateCreator(currentCampaignId, rating, feedback).send({ from: currentAccount }));
+}
+
+async function showReviewsModal() {
+    if (!contract || currentCampaignId === null) return;
     try {
-        const proofLink = document.getElementById('proofInput').value;
-        if (!proofLink) return showStatus('Please enter proof link', 'error');
+        const camp = await contract.methods.campaigns(currentCampaignId).call();
+        const creator = camp.creator;
+        const count = await contract.methods.getCreatorReviewsCount(creator).call();
         
-        showStatus('Submitting proof...', 'info');
-        await contract.methods.submitProof(currentProofId, proofLink).send({ from: currentAccount });
+        const list = document.getElementById('reviewsList');
+        list.innerHTML = '';
         
-        showStatus('Proof submitted! Stage set to Under Review.', 'success');
-        document.getElementById('submitProofSection').style.display = 'none';
-        document.getElementById('proofInput').value = '';
-        await loadMilestones();
-    } catch (error) {
-        showStatus('Failed: ' + error.message, 'error');
+        if (count == 0) {
+            list.innerHTML = '<p style="padding:15px; text-align:center; color:#9CA3AF;">No reviews found for this creator.</p>';
+        } else {
+            for (let i = 0; i < count; i++) {
+                const r = await contract.methods.getCreatorReview(creator, i).call();
+                const stars = '⭐'.repeat(r[2]);
+                list.innerHTML += `
+                    <div class="review-item">
+                        <div class="review-header">
+                            <span class="review-stars">${stars}</span>
+                            <span class="address-mono" style="font-size:0.8rem;">By: ${r[1].substring(0,6)}...${r[1].substring(38)}</span>
+                        </div>
+                        <p class="review-feedback">"${r[3] || 'No text feedback provided.'}"</p>
+                    </div>
+                `;
+            }
+        }
+        
+        document.getElementById('reviewsModal').style.display = 'flex';
+    } catch (e) {
+        showToast('Failed to load reviews.', 'error');
     }
-}
-
-async function voteMilestone(id, support) {
-    try {
-        showStatus('Voting...', 'info');
-        await contract.methods.voteOnMilestone(id, support).send({ from: currentAccount });
-        showStatus('Vote recorded!', 'success');
-        await loadMilestones();
-    } catch (error) {
-        showStatus('Failed to vote: ' + error.message, 'error');
-    }
-}
-
-async function releaseFunds(id) {
-    try {
-        showStatus('Processing fund release...', 'info');
-        await contract.methods.releaseFunds(id).send({ from: currentAccount });
-        showStatus('Funds Released!', 'success');
-        await loadMilestones();
-        await loadCampaignData();
-    } catch (error) {
-        showStatus('Failed: ' + error.message, 'error');
-    }
-}
-
-function showStatus(message, type) {
-    const statusDiv = document.getElementById('statusMessage');
-    statusDiv.textContent = message;
-    statusDiv.className = 'status-message status-' + type;
-    statusDiv.style.display = 'block';
-    setTimeout(() => { statusDiv.style.display = 'none'; }, 5000);
 }
