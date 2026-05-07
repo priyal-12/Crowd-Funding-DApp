@@ -698,6 +698,10 @@ async function checkAndPromptPinSetup() {
     const storedHash = localStorage.getItem(getPinKey());
     if (!storedHash) {
         document.getElementById('pinSetupModal').style.display = 'flex';
+    } else {
+        requirePin(() => {
+            showToast('Wallet connection verified with PIN.', 'success');
+        });
     }
 }
 
