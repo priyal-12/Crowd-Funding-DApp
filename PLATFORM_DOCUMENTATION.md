@@ -41,11 +41,14 @@ Funding -> Plan Pending -> Voting -> Approved -> Work In Progress -> Completed -
 * **Proof Submission:** After the beneficiary receives funds and completes the work, the creator must submit a decentralized proof (IPFS CID) of the completed work. This transitions the current phase to "Completed" and automatically opens the next phase for funding.
 * **Review/Rating System:** A reputation mechanism where contributors can rate creators (1-5 stars) and leave feedback (stored via IPFS). This builds a decentralized trust score for creators over time.
 * **Dashboard Features:** A comprehensive user interface where users can track their contributions, monitor campaign statuses, review IPFS plans/proofs, and execute actions (vote, claim refunds, rate creators).
+* **Selective PIN Security:** A localized frontend security layer. Users create a 4-digit PIN that is stored via secure SHA-256 hash in local storage. This PIN is specifically required *only* when connecting a wallet and making a financial contribution, minimizing friction for non-financial actions like voting.
+* **Custom Campaign Naming:** Creators can assign custom human-readable names to their campaigns, which are stored entirely on-chain for transparent, recognizable UI display across the DApp.
+* **Smart Contract Wallet Support:** Fund releases and refunds utilize the modern `.call()` pattern (rather than `.transfer()`), ensuring compatibility with Multi-sig wallets, Gnosis Safes, and other smart contract beneficiaries by avoiding the 2300 gas limit restriction.
 * **Demo Crypto Purchase Feature:** An educational, child-friendly simulation on the homepage. It explains blockchain currency basics and allows users to "Buy Crypto" in a simulated, non-monetary environment to familiarize newcomers with Web3 interactions before dealing with real assets.
 
 ## 4. Complete Campaign Lifecycle Step-by-Step
 
-1. **Campaign Creation:** A Creator initiates a campaign, specifying the Beneficiary address and an array of target amounts for each phase. The first phase enters the `Funding` status.
+1. **Campaign Creation:** A Creator initiates a campaign, specifying a custom **Campaign Name**, the Beneficiary address, and an array of target amounts for each phase. The first phase enters the `Funding` status.
 2. **Funding Phases:** Contributors send ETH to the campaign. The smart contract tracks the progress. Once the `totalRaised` equals the `targetAmount`, the phase automatically transitions to `PlanPending`.
 3. **Plan Submission:** The Creator uploads a detailed execution plan to IPFS and submits the resulting IPFS CID to the smart contract. The phase status updates to `Voting`.
 4. **Voting:** Contributors review the IPFS document and cast their votes (Support or Reject). 
