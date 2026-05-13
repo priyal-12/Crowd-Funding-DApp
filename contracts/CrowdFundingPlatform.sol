@@ -23,6 +23,7 @@ contract CrowdFundingPlatform {
     }
 
     struct Campaign {
+        string name;
         address creator;
         address payable beneficiary;
         uint totalGoal;
@@ -74,7 +75,7 @@ contract CrowdFundingPlatform {
      * @param _beneficiary Address that will receive funds
      * @param _phaseTargets Array of ETH targets for each phase in wei
      */
-    function createCampaign(address payable _beneficiary, uint[] memory _phaseTargets) external whenNotPaused {
+    function createCampaign(string memory _name, address payable _beneficiary, uint[] memory _phaseTargets) external whenNotPaused {
         require(_beneficiary != address(0) && _beneficiary != msg.sender, "Beneficiary cannot be zero or creator");
         require(_phaseTargets.length > 0 && _phaseTargets.length <= 10, "Invalid phases count (1-10)");
         
@@ -82,6 +83,7 @@ contract CrowdFundingPlatform {
         uint id = campaignCount++;
         
         Campaign storage c = campaigns[id];
+        c.name = _name;
         c.creator = msg.sender;
         c.beneficiary = _beneficiary;
         c.phasesCount = _phaseTargets.length;

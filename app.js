@@ -152,7 +152,7 @@ async function loadPlatformData() {
             card.className = 'card campaign-card';
             card.innerHTML = `
                 <div class="card-header">
-                    <h4>Campaign #${i}</h4>
+                    <h4>${camp.name}</h4>
                     <span class="status-badge" style="font-size:0.75em;">${statusText}</span>
                 </div>
                 <div class="card-body">
@@ -233,7 +233,7 @@ async function loadDashboardData() {
                 myCampList.innerHTML += `
                     <div class="db-item">
                         <div class="db-item-header">
-                            <span class="db-item-title">Campaign #${id}</span>
+                            <span class="db-item-title">${camp.name}</span>
                             <span class="status-badge" style="font-size:0.7em;">${statusText}</span>
                         </div>
                         <div class="db-item-body">
@@ -272,7 +272,7 @@ async function loadDashboardData() {
                 myContribList.innerHTML += `
                     <div class="db-item">
                         <div class="db-item-header">
-                            <span class="db-item-title">Campaign #${id}</span>
+                            <span class="db-item-title">${camp.name}</span>
                             <span class="status-badge" style="font-size:0.7em;">${statusText}</span>
                         </div>
                         <div class="db-item-body">
@@ -317,6 +317,9 @@ function addPhaseField() {
 async function createCampaign() {
     if (!contract || !currentAccount) return showToast('Connect wallet first.', 'error');
     
+    const name = document.getElementById('cName').value.trim();
+    if (!name) return showToast('Campaign name is required.', 'error');
+
     const ben = document.getElementById('cBeneficiary').value;
     if (!ben || ben.length !== 42) return showToast('Invalid beneficiary address.', 'error');
 
@@ -330,7 +333,7 @@ async function createCampaign() {
 
     try {
         showLoading(true, "Deploying Campaign...");
-        await contract.methods.createCampaign(ben, targets).send({ from: currentAccount });
+        await contract.methods.createCampaign(name, ben, targets).send({ from: currentAccount });
         showLoading(false);
         showToast('Campaign created successfully!', 'success');
         showView('homeView');
@@ -353,7 +356,7 @@ async function loadCampaignDetails(id) {
         const camp = await contract.methods.campaigns(id).call();
         isCreator = (camp.creator.toLowerCase() === currentAccount.toLowerCase());
 
-        document.getElementById('cdId').textContent = id;
+        document.getElementById('cdTitle').textContent = camp.name;
         document.getElementById('cdCreator').textContent = camp.creator.substring(0,6)+'...'+camp.creator.substring(38);
         document.getElementById('cdBeneficiary').textContent = camp.beneficiary.substring(0,6)+'...'+camp.beneficiary.substring(38);
         document.getElementById('cdTotalGoal').textContent = web3.utils.fromWei(camp.totalGoal, 'ether') + ' ETH';
