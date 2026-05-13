@@ -98,7 +98,6 @@ async function connectWallet() {
         showToast('Wallet connected!', 'success');
         
         loadPlatformData();
-        checkAndPromptPinSetup();
 
         window.ethereum.on('accountsChanged', () => location.reload());
         window.ethereum.on('chainChanged', () => location.reload());
@@ -328,18 +327,16 @@ async function createCampaign() {
         targets.push(web3.utils.toWei(val, 'ether'));
     }
 
-    requirePin(async () => {
-        try {
-            showLoading(true, "Deploying Campaign...");
-            await contract.methods.createCampaign(ben, targets).send({ from: currentAccount });
-            showLoading(false);
-            showToast('Campaign created successfully!', 'success');
-            showView('homeView');
-        } catch (e) {
-            showLoading(false);
-            showToast('Error: ' + e.message, 'error');
-        }
-    });
+    try {
+        showLoading(true, "Deploying Campaign...");
+        await contract.methods.createCampaign(ben, targets).send({ from: currentAccount });
+        showLoading(false);
+        showToast('Campaign created successfully!', 'success');
+        showView('homeView');
+    } catch (e) {
+        showLoading(false);
+        showToast('Error: ' + e.message, 'error');
+    }
 }
 
 // --- CAMPAIGN DETAILS ---
@@ -536,56 +533,40 @@ async function executeAction(actionName, promise) {
 async function contribute() {
     const amount = document.getElementById('contributeAmount').value;
     if (!amount || amount <= 0) return showToast('Invalid amount', 'error');
-    requirePin(async () => {
-        const val = web3.utils.toWei(amount, 'ether');
-        await executeAction('Contribution', contract.methods.contribute(currentCampaignId).send({ from: currentAccount, value: val }));
-    });
+    const val = web3.utils.toWei(amount, 'ether');
+    await executeAction('Contribution', contract.methods.contribute(currentCampaignId).send({ from: currentAccount, value: val }));
 }
 
 async function submitPlan() {
     const text = document.getElementById('planDetailsInput').value;
     if (!text) return showToast('Plan details required', 'error');
-    requirePin(async () => {
-        await executeAction('Submit Plan', contract.methods.submitPlan(currentCampaignId, text).send({ from: currentAccount }));
-    });
+    await executeAction('Submit Plan', contract.methods.submitPlan(currentCampaignId, text).send({ from: currentAccount }));
 }
 
 async function vote(support) {
-    requirePin(async () => {
-        await executeAction('Voting', contract.methods.vote(currentCampaignId, support).send({ from: currentAccount }));
-    });
+    await executeAction('Voting', contract.methods.vote(currentCampaignId, support).send({ from: currentAccount }));
 }
 
 async function finalizeVoting() {
-    requirePin(async () => {
-        await executeAction('Finalize Voting', contract.methods.finalizeVoting(currentCampaignId).send({ from: currentAccount }));
-    });
+    await executeAction('Finalize Voting', contract.methods.finalizeVoting(currentCampaignId).send({ from: currentAccount }));
 }
 
 async function releaseFunds() {
-    requirePin(async () => {
-        await executeAction('Release Funds', contract.methods.releaseFunds(currentCampaignId).send({ from: currentAccount }));
-    });
+    await executeAction('Release Funds', contract.methods.releaseFunds(currentCampaignId).send({ from: currentAccount }));
 }
 
 async function submitProof() {
     const url = document.getElementById('proofUrlInput').value;
     if (!url) return showToast('Proof URL required', 'error');
-    requirePin(async () => {
-        await executeAction('Submit Proof', contract.methods.submitProof(currentCampaignId, url).send({ from: currentAccount }));
-    });
+    await executeAction('Submit Proof', contract.methods.submitProof(currentCampaignId, url).send({ from: currentAccount }));
 }
 
 async function claimRefund() {
-    requirePin(async () => {
-        await executeAction('Claim Refund', contract.methods.claimRefund(currentCampaignId).send({ from: currentAccount }));
-    });
+    await executeAction('Claim Refund', contract.methods.claimRefund(currentCampaignId).send({ from: currentAccount }));
 }
 
 async function resetPhase() {
-    requirePin(async () => {
-        await executeAction('Reset Phase', contract.methods.resetPhase(currentCampaignId).send({ from: currentAccount }));
-    });
+    await executeAction('Reset Phase', contract.methods.resetPhase(currentCampaignId).send({ from: currentAccount }));
 }
 
 async function rateCreator() {
@@ -678,102 +659,4 @@ function updateCryptoConversion() {
     document.getElementById('cryptoAmountDisplay').textContent = eth;
 }
 
-// --- SECURITY PIN SYSTEM ---
-let pendingActionCallback = null;
 
-async function hashPin(pin) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(pin);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function getPinKey() {
-    return `crowdfund_pin_${currentAccount.toLowerCase()}`;
-}
-
-async function checkAndPromptPinSetup() {
-    if (!currentAccount) return;
-    const storedHash = localStorage.getItem(getPinKey());
-    if (!storedHash) {
-        document.getElementById('pinSetupModal').style.display = 'flex';
-    } else {
-        requirePin(() => {
-            showToast('Wallet connection verified with PIN.', 'success');
-        });
-    }
-}
-
-document.getElementById('btnSetPin').addEventListener('click', async () => {
-    const pin1 = document.getElementById('pinSetupInput1').value;
-    const pin2 = document.getElementById('pinSetupInput2').value;
-    const errEl = document.getElementById('pinSetupError');
-    
-    if (pin1.length !== 4 || !/^\d{4}$/.test(pin1)) {
-        errEl.textContent = 'PIN must be 4 digits.';
-        errEl.style.display = 'block';
-        return;
-    }
-    if (pin1 !== pin2) {
-        errEl.textContent = 'PINs do not match.';
-        errEl.style.display = 'block';
-        return;
-    }
-    
-    const hash = await hashPin(pin1);
-    localStorage.setItem(getPinKey(), hash);
-    
-    document.getElementById('pinSetupModal').style.display = 'none';
-    document.getElementById('pinSetupInput1').value = '';
-    document.getElementById('pinSetupInput2').value = '';
-    errEl.style.display = 'none';
-    showToast('Security PIN set successfully!', 'success');
-});
-
-function requirePin(callback) {
-    if (!currentAccount) return showToast('Connect wallet first.', 'error');
-    const storedHash = localStorage.getItem(getPinKey());
-    
-    if (!storedHash) {
-        // If they somehow bypassed setup
-        document.getElementById('pinSetupModal').style.display = 'flex';
-        return;
-    }
-    
-    pendingActionCallback = callback;
-    document.getElementById('pinVerifyInput').value = '';
-    document.getElementById('pinVerifyError').style.display = 'none';
-    document.getElementById('pinVerifyModal').style.display = 'flex';
-}
-
-document.getElementById('btnVerifyPin').addEventListener('click', async () => {
-    const pin = document.getElementById('pinVerifyInput').value;
-    const errEl = document.getElementById('pinVerifyError');
-    const storedHash = localStorage.getItem(getPinKey());
-    
-    const hash = await hashPin(pin);
-    if (hash === storedHash) {
-        document.getElementById('pinVerifyModal').style.display = 'none';
-        if (pendingActionCallback) {
-            pendingActionCallback();
-            pendingActionCallback = null;
-        }
-    } else {
-        errEl.textContent = 'Incorrect PIN.';
-        errEl.style.display = 'block';
-    }
-});
-
-document.getElementById('closePinVerifyBtn').addEventListener('click', () => {
-    document.getElementById('pinVerifyModal').style.display = 'none';
-    pendingActionCallback = null;
-});
-
-document.getElementById('btnResetPin').addEventListener('click', () => {
-    if (confirm('Are you sure you want to reset your PIN? This will clear the current PIN for this wallet on this device.')) {
-        localStorage.removeItem(getPinKey());
-        document.getElementById('pinVerifyModal').style.display = 'none';
-        document.getElementById('pinSetupModal').style.display = 'flex';
-    }
-});

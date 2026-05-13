@@ -41,7 +41,6 @@ Funding -> Plan Pending -> Voting -> Approved -> Work In Progress -> Completed -
 * **Proof Submission:** After the beneficiary receives funds and completes the work, the creator must submit a decentralized proof (IPFS CID) of the completed work. This transitions the current phase to "Completed" and automatically opens the next phase for funding.
 * **Review/Rating System:** A reputation mechanism where contributors can rate creators (1-5 stars) and leave feedback (stored via IPFS). This builds a decentralized trust score for creators over time.
 * **Dashboard Features:** A comprehensive user interface where users can track their contributions, monitor campaign statuses, review IPFS plans/proofs, and execute actions (vote, claim refunds, rate creators).
-* **PIN Security System:** A localized frontend security feature that requires users to enter a customized Security PIN specifically when making monetary contributions, adding a layer of user-intent verification before MetaMask transaction signing.
 * **Demo Crypto Purchase Feature:** An educational, child-friendly simulation on the homepage. It explains blockchain currency basics and allows users to "Buy Crypto" in a simulated, non-monetary environment to familiarize newcomers with Web3 interactions before dealing with real assets.
 
 ## 4. Complete Campaign Lifecycle Step-by-Step
