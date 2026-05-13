@@ -1,5 +1,5 @@
 const CONFIG = {
-    contractAddress: "0xDB2f252eb20a90bF12D1DEbe6D8bA87D9D6d26d8", // Will be updated after deployment
+    contractAddress: "0x6763E8aF2B5D742836fB93D1293D5F767ac786e9", // Will be updated after deployment
     sepoliaChainId: "0xaa36a7",
     sepoliaNetworkName: "Sepolia Testnet",
 
