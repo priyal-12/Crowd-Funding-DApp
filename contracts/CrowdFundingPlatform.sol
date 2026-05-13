@@ -184,7 +184,8 @@ contract CrowdFundingPlatform {
         p.status = PhaseStatus.WorkInProgress;
         
         require(address(this).balance >= p.targetAmount, "Insufficient contract balance");
-        c.beneficiary.transfer(p.targetAmount);
+        (bool success, ) = c.beneficiary.call{value: p.targetAmount}("");
+        require(success, "Transfer to beneficiary failed");
     }
 
     /**
@@ -222,7 +223,8 @@ contract CrowdFundingPlatform {
         p.totalRaised -= amount;
         c.totalFundsRaised -= amount;
         
-        payable(msg.sender).transfer(amount);
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Refund transfer failed");
     }
     
     /**
