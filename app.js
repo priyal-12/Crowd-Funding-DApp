@@ -516,8 +516,7 @@ async function loadCampaignDetails(id) {
             document.getElementById('formRateCreator').style.display = 'block';
         }
 
-        const everReceived = await contract.methods.hasEverReceivedFunds(id).call();
-        if (isCreator && !everReceived) {
+        if (isCreator && parseFloat(web3.utils.fromWei(camp.totalFundsRaised, 'ether')) === 0) {
             document.getElementById('formDeleteCampaign').style.display = 'block';
         }
 

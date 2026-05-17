@@ -63,7 +63,6 @@ contract CrowdFundingPlatform {
 
     // campaignId => bool
     mapping(uint => bool) public isCampaignDeleted;
-    mapping(uint => bool) public hasEverReceivedFunds;
 
     modifier onlyAdmin() { require(msg.sender == admin, "Not admin"); _; }
     modifier whenNotPaused() { require(!paused, "Platform is paused"); _; }
@@ -103,10 +102,10 @@ contract CrowdFundingPlatform {
     }
 
     /**
-     * @dev Delete a campaign if it has never received any contributions
+     * @dev Delete a campaign if it currently has no funds raised (or all funds were refunded)
      */
     function deleteCampaign(uint _id) external onlyCreator(_id) whenNotPaused {
-        require(!hasEverReceivedFunds[_id], "Cannot delete: campaign has received contributions");
+        require(campaigns[_id].totalFundsRaised == 0, "Cannot delete: campaign currently holds funds");
         require(!isCampaignDeleted[_id], "Campaign is already deleted");
         isCampaignDeleted[_id] = true;
     }
@@ -129,7 +128,6 @@ contract CrowdFundingPlatform {
         p.totalRaised += msg.value;
         c.totalFundsRaised += msg.value;
         phaseContributions[_id][pIdx][msg.sender] += msg.value;
-        hasEverReceivedFunds[_id] = true;
         
         if (p.totalRaised == p.targetAmount) {
             p.status = PhaseStatus.PlanPending;
