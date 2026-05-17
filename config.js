@@ -31,6 +31,9 @@ const CONFIG = {
         { "inputs": [{ "internalType": "uint256", "name": "_id", "type": "uint256" }, { "internalType": "string", "name": "_planDetails", "type": "string" }], "name": "submitPlan", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
         { "inputs": [{ "internalType": "uint256", "name": "_id", "type": "uint256" }, { "internalType": "string", "name": "_proof", "type": "string" }], "name": "submitProof", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
         { "inputs": [], "name": "unpause", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-        { "inputs": [{ "internalType": "uint256", "name": "_id", "type": "uint256" }, { "internalType": "bool", "name": "_support", "type": "bool" }], "name": "vote", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+        { "inputs": [{ "internalType": "uint256", "name": "_id", "type": "uint256" }, { "internalType": "bool", "name": "_support", "type": "bool" }], "name": "vote", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+        { "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "isCampaignDeleted", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" },
+        { "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "hasEverReceivedFunds", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" },
+        { "inputs": [{ "internalType": "uint256", "name": "_id", "type": "uint256" }], "name": "deleteCampaign", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
     ]
 };
