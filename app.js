@@ -116,12 +116,14 @@ async function loadPlatformData() {
         document.getElementById('globalTotalCampaigns').textContent = count;
         
         let totalEth = 0;
+        let activeCount = 0;
         const grid = document.getElementById('campaignsGrid');
         grid.innerHTML = '';
 
         if (count == 0) {
             grid.innerHTML = '<p style="color:#888; text-align:center; grid-column: 1/-1;">No campaigns found on the platform yet.</p>';
             document.getElementById('globalTotalEth').textContent = '0 ETH';
+            if(document.getElementById('globalActiveCampaigns')) document.getElementById('globalActiveCampaigns').textContent = '0';
             return;
         }
 
@@ -136,6 +138,7 @@ async function loadPlatformData() {
             let statusText = "Completed";
             
             if (pIdx < camp.phasesCount) {
+                activeCount++;
                 const phase = await contract.methods.campaignPhases(i, pIdx).call();
                 statusText = PhaseStatusMap[phase.status];
             }
@@ -170,6 +173,7 @@ async function loadPlatformData() {
         }
         
         document.getElementById('globalTotalEth').textContent = totalEth.toFixed(2) + ' ETH';
+        if(document.getElementById('globalActiveCampaigns')) document.getElementById('globalActiveCampaigns').textContent = activeCount;
         
     } catch (e) {
         console.error(e);
