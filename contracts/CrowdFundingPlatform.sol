@@ -61,6 +61,10 @@ contract CrowdFundingPlatform {
     // campaignId => phaseIndex => current attempt nonce (used for resetting votes)
     mapping(uint => mapping(uint => uint)) public phaseAttempts;
 
+    // campaignId => bool
+    mapping(uint => bool) public isCampaignDeleted;
+    mapping(uint => bool) public hasEverReceivedFunds;
+
     modifier onlyAdmin() { require(msg.sender == admin, "Not admin"); _; }
     modifier whenNotPaused() { require(!paused, "Platform is paused"); _; }
     modifier onlyCreator(uint _id) { require(msg.sender == campaigns[_id].creator, "Not campaign creator"); _; }
@@ -99,6 +103,15 @@ contract CrowdFundingPlatform {
     }
 
     /**
+     * @dev Delete a campaign if it has never received any contributions
+     */
+    function deleteCampaign(uint _id) external onlyCreator(_id) whenNotPaused {
+        require(!hasEverReceivedFunds[_id], "Cannot delete: campaign has received contributions");
+        require(!isCampaignDeleted[_id], "Campaign is already deleted");
+        isCampaignDeleted[_id] = true;
+    }
+
+    /**
      * @dev Contribute to the current open phase
      */
     function contribute(uint _id) external payable whenNotPaused {
@@ -116,6 +129,7 @@ contract CrowdFundingPlatform {
         p.totalRaised += msg.value;
         c.totalFundsRaised += msg.value;
         phaseContributions[_id][pIdx][msg.sender] += msg.value;
+        hasEverReceivedFunds[_id] = true;
         
         if (p.totalRaised == p.targetAmount) {
             p.status = PhaseStatus.PlanPending;

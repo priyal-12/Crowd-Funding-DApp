@@ -41,6 +41,7 @@ window.addEventListener('load', async () => {
     document.getElementById('btnClaimRefund').addEventListener('click', claimRefund);
     document.getElementById('btnResetPhase').addEventListener('click', resetPhase);
     document.getElementById('btnRateCreator').addEventListener('click', rateCreator);
+    document.getElementById('btnDeleteCampaign').addEventListener('click', deleteCampaign);
     document.getElementById('btnViewReviews').addEventListener('click', showReviewsModal);
     document.getElementById('closeReviewsBtn').addEventListener('click', () => { document.getElementById('reviewsModal').style.display = 'none'; });
 
@@ -125,6 +126,9 @@ async function loadPlatformData() {
         }
 
         for (let i = 0; i < count; i++) {
+            const isDeleted = await contract.methods.isCampaignDeleted(i).call();
+            if (isDeleted) continue;
+            
             const camp = await contract.methods.campaigns(i).call();
             totalEth += parseFloat(web3.utils.fromWei(camp.totalFundsRaised, 'ether'));
             
@@ -188,6 +192,9 @@ async function loadDashboardData() {
         let campCount = 0;
 
         for (let id = 0; id < count; id++) {
+            const isDeleted = await contract.methods.isCampaignDeleted(id).call();
+            if (isDeleted) continue;
+
             const camp = await contract.methods.campaigns(id).call();
             const pIdx = parseInt(camp.currentPhaseIndex);
             const pCount = parseInt(camp.phasesCount);
@@ -353,6 +360,13 @@ async function viewCampaignDetails(id) {
 
 async function loadCampaignDetails(id) {
     try {
+        const isDeleted = await contract.methods.isCampaignDeleted(id).call();
+        if (isDeleted) {
+            showToast('This campaign has been deleted.', 'error');
+            showView('homeView');
+            return;
+        }
+
         const camp = await contract.methods.campaigns(id).call();
         isCreator = (camp.creator.toLowerCase() === currentAccount.toLowerCase());
 
@@ -502,6 +516,11 @@ async function loadCampaignDetails(id) {
             document.getElementById('formRateCreator').style.display = 'block';
         }
 
+        const everReceived = await contract.methods.hasEverReceivedFunds(id).call();
+        if (isCreator && !everReceived) {
+            document.getElementById('formDeleteCampaign').style.display = 'block';
+        }
+
     } catch (e) {
         console.error(e);
         showToast('Failed to load campaign details.', 'error');
@@ -579,6 +598,11 @@ async function rateCreator() {
     const rating = document.getElementById('creatorRatingInput').value;
     const feedback = document.getElementById('creatorFeedbackInput').value;
     await executeAction('Submit Rating', contract.methods.rateCreator(currentCampaignId, rating, feedback).send({ from: currentAccount }));
+}
+
+async function deleteCampaign() {
+    if (!confirm("Are you sure you want to permanently delete this campaign? This action cannot be undone.")) return;
+    await executeAction('Delete Campaign', contract.methods.deleteCampaign(currentCampaignId).send({ from: currentAccount }));
 }
 
 async function showReviewsModal() {

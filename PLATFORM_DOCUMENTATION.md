@@ -45,6 +45,7 @@ Funding -> Plan Pending -> Voting -> Approved -> Work In Progress -> Completed -
 * **Custom Campaign Naming:** Creators can assign custom human-readable names to their campaigns, which are stored entirely on-chain for transparent, recognizable UI display across the DApp.
 * **Smart Contract Wallet Support:** Fund releases and refunds utilize the modern `.call()` pattern (rather than `.transfer()`), ensuring compatibility with Multi-sig wallets, Gnosis Safes, and other smart contract beneficiaries by avoiding the 2300 gas limit restriction.
 * **Demo Crypto Purchase Feature:** An educational, child-friendly simulation on the homepage. It explains blockchain currency basics and allows users to "Buy Crypto" in a simulated, non-monetary environment to familiarize newcomers with Web3 interactions before dealing with real assets.
+* **Strict Campaign Deletion (Danger Zone):** Creators can permanently delete their campaigns from the dashboard. However, the smart contract enforces a strict, mathematical rule: a campaign can **never** be deleted if it has received any contributions. Even if a contribution is made and fully refunded later, a `hasEverReceivedFunds` flag is permanently triggered on-chain, locking the delete feature forever. This guarantees complete historical transparency for any campaign the public has interacted with.
 
 ## 4. Complete Campaign Lifecycle Step-by-Step
 
@@ -58,6 +59,7 @@ Funding -> Plan Pending -> Voting -> Approved -> Work In Progress -> Completed -
 8. **Refunds & Resets (Alternative Path):** If a plan is rejected during voting (`Rejected` status):
     * Contributors can call `claimRefund()` to retrieve their exact contribution for that phase.
     * The Creator can call `resetPhase()` to move the phase back to `Funding`. Previous votes are nullified, allowing the Creator to try again with a better plan, provided contributors re-fund or left their funds in the contract.
+9. **Campaign Deletion (Alternative Path):** If a Creator makes a mistake during creation or changes their mind *before* anyone funds the project, they can trigger the `deleteCampaign` function. This hides the campaign from the platform. However, the exact moment a single Wei is contributed, the contract permanently disables this option.
 
 ## 5. Technology Stack & Platform Architecture
 
