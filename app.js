@@ -413,6 +413,35 @@ async function loadCampaignDetails(id) {
             tracker.appendChild(div);
         }
 
+        // Build Completed Proofs List
+        const completedProofsCard = document.getElementById('completedProofsCard');
+        const completedProofsList = document.getElementById('completedProofsList');
+        completedProofsList.innerHTML = '';
+        let hasProofs = false;
+
+        const maxPhaseToCheck = Math.min(pIdx, pCount);
+        for (let i = 0; i < maxPhaseToCheck; i++) {
+            const phaseInfo = await contract.methods.campaignPhases(id, i).call();
+            if (phaseInfo.status == 5 && phaseInfo.proofOfWork) {
+                hasProofs = true;
+                completedProofsList.innerHTML += `
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin:0 0 5px 0;">Phase ${i + 1} Proof</h4>
+                            <p style="margin:0; font-size: 0.9rem; color: var(--text-muted);">${web3.utils.fromWei(phaseInfo.targetAmount, 'ether')} ETH Funded</p>
+                        </div>
+                        <a href="${phaseInfo.proofOfWork}" target="_blank" class="btn-primary btn-small" style="text-decoration: none;">View Proof</a>
+                    </div>
+                `;
+            }
+        }
+        
+        if (hasProofs) {
+            completedProofsCard.style.display = 'block';
+        } else {
+            completedProofsCard.style.display = 'none';
+        }
+
         // Current Phase logic
         const card = document.getElementById('currentPhaseCard');
         if (pIdx >= pCount) {
@@ -420,6 +449,19 @@ async function loadCampaignDetails(id) {
             document.getElementById('cpStatusBadge').textContent = "Campaign Finished";
             card.style.opacity = '0.7';
             hideAllForms();
+            
+            let hasContributedToAnyPhase = false;
+            for (let i = 0; i < pCount; i++) {
+                const myContribution = await contract.methods.phaseContributions(id, i, currentAccount).call();
+                if (myContribution > 0) {
+                    hasContributedToAnyPhase = true;
+                    break;
+                }
+            }
+            const hasRated = await contract.methods.hasRatedCampaign(id, currentAccount).call();
+            if (hasContributedToAnyPhase && !hasRated && !isCreator) {
+                document.getElementById('formRateCreator').style.display = 'block';
+            }
             return;
         }
 
